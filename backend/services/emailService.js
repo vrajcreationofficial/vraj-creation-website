@@ -3,8 +3,7 @@
 // GST-EXCLUSIVE / GST ADDED ON TOP
 // =====================================================
 
-const nodemailer =
-  require("nodemailer");
+const nodemailer = require("nodemailer");
 
 const {
   generateGSTInvoicePDF,
@@ -17,8 +16,7 @@ require("dotenv").config();
 // BUSINESS / GST CONFIGURATION
 // =====================================================
 
-const BUSINESS_STATE =
-  "Rajasthan";
+const BUSINESS_STATE = "Rajasthan";
 
 const GST_RATE = 5;
 
@@ -54,29 +52,44 @@ const ADMIN_ORDER_EMAIL =
 // =====================================================
 // SMTP TRANSPORTER
 // =====================================================
+// IMPORTANT:
+//
+// connectionTimeout:
+// SMTP server se connection ke liye max 10 sec
+//
+// greetingTimeout:
+// SMTP greeting ke liye max 10 sec
+//
+// socketTimeout:
+// SMTP response ke liye max 15 sec
+//
+// Isse email server hang hone par order request
+// indefinitely wait nahi karegi.
+// =====================================================
 
 const transporter =
   nodemailer.createTransport({
-    host:
-      SMTP_HOST,
+    host: SMTP_HOST,
 
-    port:
-      SMTP_PORT,
+    port: SMTP_PORT,
 
     secure:
       SMTP_PORT === 465,
 
     auth: {
-      user:
-        SMTP_USER,
+      user: SMTP_USER,
 
-      pass:
-        SMTP_PASS,
+      pass: SMTP_PASS,
     },
 
+    connectionTimeout: 10000,
+
+    greetingTimeout: 10000,
+
+    socketTimeout: 15000,
+
     tls: {
-      rejectUnauthorized:
-        false,
+      rejectUnauthorized: false,
     },
   });
 
@@ -87,19 +100,18 @@ const transporter =
 const verifyEmailConnection =
   async () => {
     try {
-      await transporter.verify();
-
       console.log(
         "===================================="
       );
 
       console.log(
-        "Email SMTP connection successful"
+        "Checking SMTP connection..."
       );
 
       console.log(
         "SMTP Host:",
-        SMTP_HOST
+        SMTP_HOST ||
+          "NOT CONFIGURED"
       );
 
       console.log(
@@ -109,7 +121,32 @@ const verifyEmailConnection =
 
       console.log(
         "Email From:",
-        EMAIL_FROM
+        EMAIL_FROM ||
+          "NOT CONFIGURED"
+      );
+
+      if (!SMTP_HOST) {
+        throw new Error(
+          "SMTP_HOST is not configured."
+        );
+      }
+
+      if (!SMTP_USER) {
+        throw new Error(
+          "SMTP_USER is not configured."
+        );
+      }
+
+      if (!SMTP_PASS) {
+        throw new Error(
+          "SMTP_PASS is not configured."
+        );
+      }
+
+      await transporter.verify();
+
+      console.log(
+        "Email SMTP connection successful"
       );
 
       console.log(
@@ -127,7 +164,9 @@ const verifyEmailConnection =
       );
 
       console.error(
-        error.message
+        "Error:",
+        error?.message ||
+          error
       );
 
       console.error(
@@ -169,7 +208,9 @@ const round2 = (
   value
 ) => {
   return Number(
-    Number(value || 0).toFixed(2)
+    Number(
+      value || 0
+    ).toFixed(2)
   );
 };
 
@@ -190,31 +231,23 @@ const normalizeState = (
 // =====================================================
 // IMPORTANT:
 //
-// HSN is ONLY taken from trusted product/order data.
+// HSN ONLY trusted product/order data se liya jayega.
 //
-// NO category-based HSN fallback.
+// Category ke basis par HSN generate nahi hoga.
 //
-// Valid HSN:
-// 4 digits
-// 6 digits
-// 8 digits
-//
-// Examples:
-// 7326
-// 4421
-// 3926
-// 94036000
-//
-// If HSN is missing or invalid:
-// "-"
+// Valid:
+// 4 digit
+// 6 digit
+// 8 digit
 // =====================================================
 
 const normalizeHSNCode = (
   value = ""
 ) => {
   const hsn =
-    String(value ?? "")
-      .trim();
+    String(
+      value ?? ""
+    ).trim();
 
   if (!hsn) {
     return "";
@@ -237,37 +270,19 @@ const normalizeHSNCode = (
 };
 
 // =====================================================
-// GET DEFAULT HSN CODE
+// DEFAULT HSN
 // =====================================================
-// IMPORTANT:
-//
-// Kept only for backward compatibility
-// with existing imports.
-//
-// NO category mapping is performed.
-//
-// HSN is NEVER generated from category.
+// Backward compatibility only.
+// No category based HSN.
 // =====================================================
 
-const getDefaultHSNCode = () => {
-  return "";
-};
+const getDefaultHSNCode =
+  () => {
+    return "";
+  };
 
 // =====================================================
 // RESOLVE ITEM HSN CODE
-// =====================================================
-// Priority:
-//
-// 1. item.hsnCode
-// 2. item.hsn
-// 3. item.HSNCode
-// 4. item.hsn_code
-// 5. item.product.hsnCode
-// 6. item.product.hsn
-// 7. item.product.HSNCode
-// 8. item.product.hsn_code
-//
-// NO CATEGORY FALLBACK.
 // =====================================================
 
 const getItemHSNCode = (
@@ -293,13 +308,16 @@ const getItemHSNCode = (
       rawHSN
     );
 
-  return hsnCode || "-";
+  return (
+    hsnCode ||
+    "-"
+  );
 };
 
 // =====================================================
 // GST CALCULATION
 // =====================================================
-// GST IS ADDED ON TOP.
+// GST EXCLUSIVE
 //
 // Example:
 //
@@ -311,6 +329,13 @@ const getItemHSNCode = (
 // GST 5%                 = ₹33
 // -----------------------------
 // Grand Total            = ₹693
+//
+// Rajasthan:
+// CGST 2.5%
+// SGST 2.5%
+//
+// Outside Rajasthan:
+// IGST 5%
 // =====================================================
 
 const calculateGST = (
@@ -322,7 +347,8 @@ const calculateGST = (
       Math.max(
         0,
         Number(
-          totalAmountBeforeTax || 0
+          totalAmountBeforeTax ||
+            0
         )
       )
     );
@@ -355,15 +381,16 @@ const calculateGST = (
   let igst = 0;
 
   if (isInterState) {
-    // -----------------------------------------------
+    // ===============================================
     // OUTSIDE RAJASTHAN
-    // -----------------------------------------------
+    // ===============================================
 
-    igst = totalGST;
+    igst =
+      totalGST;
   } else {
-    // -----------------------------------------------
+    // ===============================================
     // WITHIN RAJASTHAN
-    // -----------------------------------------------
+    // ===============================================
 
     cgst =
       round2(
@@ -372,7 +399,8 @@ const calculateGST = (
 
     sgst =
       round2(
-        totalGST - cgst
+        totalGST -
+          cgst
       );
   }
 
@@ -532,14 +560,6 @@ const createItemsHtml = (
                 price
           );
 
-        // ---------------------------------------------
-        // HSN CODE
-        // ---------------------------------------------
-        // ONLY manual/product-master HSN.
-        //
-        // Category is NOT used.
-        // ---------------------------------------------
-
         const hsnCode =
           getItemHSNCode(
             item
@@ -559,7 +579,6 @@ const createItemsHtml = (
             >
               ${index + 1}
             </td>
-
 
             <!-- PRODUCT -->
 
@@ -598,8 +617,7 @@ const createItemsHtml = (
               }
             </td>
 
-
-            <!-- HSN CODE -->
+            <!-- HSN -->
 
             <td
               style="
@@ -615,7 +633,6 @@ const createItemsHtml = (
               )}
             </td>
 
-
             <!-- QTY -->
 
             <td
@@ -627,7 +644,6 @@ const createItemsHtml = (
             >
               ${quantity}
             </td>
-
 
             <!-- PRICE -->
 
@@ -642,7 +658,6 @@ const createItemsHtml = (
                 price
               )}
             </td>
-
 
             <!-- SUBTOTAL -->
 
@@ -720,7 +735,7 @@ const createOrderHtml = (
     );
 
   // ===================================================
-  // PRODUCT AMOUNT AFTER DISCOUNT
+  // PRODUCT AFTER DISCOUNT
   // ===================================================
 
   const productAmountAfterDiscount =
@@ -760,7 +775,7 @@ const createOrderHtml = (
     ).trim();
 
   // ===================================================
-  // TOTAL AMOUNT BEFORE TAX
+  // TOTAL BEFORE TAX
   // ===================================================
 
   const fallbackTotalBeforeTax =
@@ -781,33 +796,37 @@ const createOrderHtml = (
 
   const totalAmountBeforeTax =
     round2(
-      savedTotalBeforeTax > 0
+      savedTotalBeforeTax >
+        0
         ? savedTotalBeforeTax
         : fallbackTotalBeforeTax
     );
 
   // ===================================================
-  // GST
+  // SAVED GST
   // ===================================================
 
   const savedCGST =
     round2(
       Number(
-        savedGST.cgst || 0
+        savedGST.cgst ||
+          0
       )
     );
 
   const savedSGST =
     round2(
       Number(
-        savedGST.sgst || 0
+        savedGST.sgst ||
+          0
       )
     );
 
   const savedIGST =
     round2(
       Number(
-        savedGST.igst || 0
+        savedGST.igst ||
+          0
       )
     );
 
@@ -827,6 +846,10 @@ const createOrderHtml = (
     savedCGST > 0 ||
     savedSGST > 0 ||
     savedIGST > 0;
+
+  // ===================================================
+  // GST
+  // ===================================================
 
   const gst =
     hasSavedGST
@@ -923,28 +946,32 @@ const createOrderHtml = (
   const totalGST =
     round2(
       Number(
-        gst.totalGST || 0
+        gst.totalGST ||
+          0
       )
     );
 
   const cgst =
     round2(
       Number(
-        gst.cgst || 0
+        gst.cgst ||
+          0
       )
     );
 
   const sgst =
     round2(
       Number(
-        gst.sgst || 0
+        gst.sgst ||
+          0
       )
     );
 
   const igst =
     round2(
       Number(
-        gst.igst || 0
+        gst.igst ||
+          0
       )
     );
 
@@ -993,6 +1020,10 @@ const createOrderHtml = (
         igst > 0
     );
 
+  // ===================================================
+  // HTML
+  // ===================================================
+
   return `
 <!DOCTYPE html>
 
@@ -1001,6 +1032,11 @@ const createOrderHtml = (
 <head>
 
 <meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
 
 <title>
   Vraj Creation Order Confirmation
@@ -1063,7 +1099,6 @@ const createOrderHtml = (
 
   </div>
 
-
   <!-- CONTENT -->
 
   <div
@@ -1091,7 +1126,6 @@ const createOrderHtml = (
       }
     </div>
 
-
     <div
       style="
         color:#666;
@@ -1099,7 +1133,6 @@ const createOrderHtml = (
         margin-bottom:20px;
       "
     >
-
       Order #
 
       <strong>
@@ -1108,9 +1141,7 @@ const createOrderHtml = (
             "-"
         )}
       </strong>
-
     </div>
-
 
     <!-- STATUS -->
 
@@ -1126,16 +1157,13 @@ const createOrderHtml = (
         margin-bottom:20px;
       "
     >
-
       Status:
 
       ${escapeHtml(
         order?.status ||
           "pending"
       )}
-
     </div>
-
 
     <!-- CUSTOMER DETAILS -->
 
@@ -1148,7 +1176,6 @@ const createOrderHtml = (
       Customer Details
     </h3>
 
-
     <table
       style="
         width:100%;
@@ -1158,7 +1185,6 @@ const createOrderHtml = (
     >
 
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1181,12 +1207,9 @@ const createOrderHtml = (
               "-"
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1207,12 +1230,9 @@ const createOrderHtml = (
               "-"
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1232,12 +1252,9 @@ const createOrderHtml = (
               "-"
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1257,12 +1274,9 @@ const createOrderHtml = (
               "-"
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1282,12 +1296,9 @@ const createOrderHtml = (
               "-"
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1307,12 +1318,9 @@ const createOrderHtml = (
               BUSINESS_STATE
           )}
         </td>
-
       </tr>
 
-
       <tr>
-
         <td
           style="
             padding:6px 0;
@@ -1328,14 +1336,13 @@ const createOrderHtml = (
           "
         >
           ${escapeHtml(
-            pincode || "-"
+            pincode ||
+              "-"
           )}
         </td>
-
       </tr>
 
     </table>
-
 
     <!-- ORDER ITEMS -->
 
@@ -1347,7 +1354,6 @@ const createOrderHtml = (
     >
       Order Items
     </h3>
-
 
     <table
       style="
@@ -1366,8 +1372,6 @@ const createOrderHtml = (
           "
         >
 
-          <!-- # -->
-
           <th
             style="
               padding:10px;
@@ -1378,9 +1382,6 @@ const createOrderHtml = (
             #
           </th>
 
-
-          <!-- PRODUCT -->
-
           <th
             style="
               padding:10px;
@@ -1390,9 +1391,6 @@ const createOrderHtml = (
           >
             Product
           </th>
-
-
-          <!-- HSN -->
 
           <th
             style="
@@ -1405,9 +1403,6 @@ const createOrderHtml = (
             HSN Code
           </th>
 
-
-          <!-- QTY -->
-
           <th
             style="
               padding:10px;
@@ -1418,9 +1413,6 @@ const createOrderHtml = (
             Qty
           </th>
 
-
-          <!-- PRICE -->
-
           <th
             style="
               padding:10px;
@@ -1430,9 +1422,6 @@ const createOrderHtml = (
           >
             Price
           </th>
-
-
-          <!-- SUBTOTAL -->
 
           <th
             style="
@@ -1448,7 +1437,6 @@ const createOrderHtml = (
 
       </thead>
 
-
       <tbody>
 
         ${createItemsHtml(
@@ -1458,7 +1446,6 @@ const createOrderHtml = (
       </tbody>
 
     </table>
-
 
     <!-- SHIPPING -->
 
@@ -1470,7 +1457,6 @@ const createOrderHtml = (
     >
       Shipping
     </h3>
-
 
     <div
       style="
@@ -1487,24 +1473,21 @@ const createOrderHtml = (
           margin-bottom:5px;
         "
       >
-
         Pincode:
 
         <strong>
           ${escapeHtml(
-            pincode || "-"
+            pincode ||
+              "-"
           )}
         </strong>
-
       </div>
-
 
       <div
         style="
           margin-bottom:5px;
         "
       >
-
         Weight:
 
         <strong>
@@ -1514,12 +1497,9 @@ const createOrderHtml = (
               : "-"
           }
         </strong>
-
       </div>
 
-
       <div>
-
         Shipping Charge:
 
         <strong>
@@ -1527,11 +1507,9 @@ const createOrderHtml = (
             shippingCharge
           )}
         </strong>
-
       </div>
 
     </div>
-
 
     <!-- TOTALS -->
 
@@ -1566,7 +1544,6 @@ const createOrderHtml = (
 
       </div>
 
-
       <!-- DISCOUNT -->
 
       ${
@@ -1596,7 +1573,6 @@ const createOrderHtml = (
           : ""
       }
 
-
       <!-- COUPON -->
 
       ${
@@ -1623,7 +1599,6 @@ const createOrderHtml = (
           : ""
       }
 
-
       <!-- PRODUCT AFTER DISCOUNT -->
 
       <div
@@ -1646,7 +1621,6 @@ const createOrderHtml = (
         </strong>
 
       </div>
-
 
       <!-- SHIPPING -->
 
@@ -1674,7 +1648,6 @@ const createOrderHtml = (
         </strong>
 
       </div>
-
 
       <!-- TOTAL BEFORE TAX -->
 
@@ -1705,8 +1678,7 @@ const createOrderHtml = (
 
       </div>
 
-
-      <!-- GST SECTION -->
+      <!-- GST -->
 
       <div
         style="
@@ -1774,7 +1746,6 @@ const createOrderHtml = (
 
               </div>
 
-
               <div
                 style="
                   display:flex;
@@ -1803,7 +1774,6 @@ const createOrderHtml = (
             `
         }
 
-
         <div
           style="
             display:flex;
@@ -1829,7 +1799,6 @@ const createOrderHtml = (
         </div>
 
       </div>
-
 
       <!-- GRAND TOTAL -->
 
@@ -1858,7 +1827,6 @@ const createOrderHtml = (
 
       </div>
 
-
       <!-- GST NOTE -->
 
       <div
@@ -1876,7 +1844,6 @@ const createOrderHtml = (
       </div>
 
     </div>
-
 
     <!-- PAYMENT -->
 
@@ -1914,7 +1881,6 @@ const createOrderHtml = (
 
     </div>
 
-
     <!-- PDF NOTICE -->
 
     <div
@@ -1932,7 +1898,6 @@ const createOrderHtml = (
       email as a PDF.
 
     </div>
-
 
     <!-- FOOTER -->
 
@@ -1995,40 +1960,64 @@ const sendAdminOrderEmail =
       };
     }
 
+    if (
+      !SMTP_HOST ||
+      !SMTP_USER ||
+      !SMTP_PASS
+    ) {
+      console.error(
+        "Admin email skipped: SMTP configuration is incomplete."
+      );
+
+      return {
+        success: false,
+
+        skipped: true,
+
+        reason:
+          "SMTP configuration incomplete",
+      };
+    }
+
     const orderNumber =
       order?.orderNumber ||
       "New Order";
 
     try {
+      console.log(
+        `[EMAIL] Sending admin email for ${orderNumber}...`
+      );
+
       const info =
-        await transporter.sendMail(
-          {
-            from:
-              EMAIL_FROM,
+        await transporter.sendMail({
+          from:
+            EMAIL_FROM,
 
-            to:
-              ADMIN_ORDER_EMAIL,
+          to:
+            ADMIN_ORDER_EMAIL,
 
-            subject:
-              `New Vraj Creation Order - ${orderNumber}`,
+          subject:
+            `New Vraj Creation Order - ${orderNumber}`,
 
-            html:
-              createOrderHtml(
-                order,
-                {
-                  recipientType:
-                    "admin",
-                }
-              ),
+          html:
+            createOrderHtml(
+              order,
+              {
+                recipientType:
+                  "admin",
+              }
+            ),
 
-            attachments:
-              attachments,
-          }
-        );
+          attachments,
+
+          headers: {
+            "X-Vraj-Creation":
+              "Order",
+          },
+        });
 
       console.log(
-        "Admin order email sent:",
-        info.messageId
+        `[EMAIL] Admin order email sent successfully: ${info.messageId}`
       );
 
       return {
@@ -2039,15 +2028,17 @@ const sendAdminOrderEmail =
       };
     } catch (error) {
       console.error(
-        "Admin order email failed:",
-        error.message
+        `[EMAIL] Admin order email failed for ${orderNumber}:`,
+        error?.message ||
+          error
       );
 
       return {
         success: false,
 
         error:
-          error.message,
+          error?.message ||
+          String(error),
       };
     }
   };
@@ -2081,40 +2072,64 @@ const sendCustomerOrderEmail =
       };
     }
 
+    if (
+      !SMTP_HOST ||
+      !SMTP_USER ||
+      !SMTP_PASS
+    ) {
+      console.error(
+        "Customer email skipped: SMTP configuration is incomplete."
+      );
+
+      return {
+        success: false,
+
+        skipped: true,
+
+        reason:
+          "SMTP configuration incomplete",
+      };
+    }
+
     const orderNumber =
       order?.orderNumber ||
       "Order";
 
     try {
+      console.log(
+        `[EMAIL] Sending customer email for ${orderNumber} to ${customerEmail}...`
+      );
+
       const info =
-        await transporter.sendMail(
-          {
-            from:
-              EMAIL_FROM,
+        await transporter.sendMail({
+          from:
+            EMAIL_FROM,
 
-            to:
-              customerEmail,
+          to:
+            customerEmail,
 
-            subject:
-              `Vraj Creation Order Confirmation - ${orderNumber}`,
+          subject:
+            `Vraj Creation Order Confirmation - ${orderNumber}`,
 
-            html:
-              createOrderHtml(
-                order,
-                {
-                  recipientType:
-                    "customer",
-                }
-              ),
+          html:
+            createOrderHtml(
+              order,
+              {
+                recipientType:
+                  "customer",
+              }
+            ),
 
-            attachments:
-              attachments,
-          }
-        );
+          attachments,
+
+          headers: {
+            "X-Vraj-Creation":
+              "Order",
+          },
+        });
 
       console.log(
-        "Customer order email sent:",
-        info.messageId
+        `[EMAIL] Customer order email sent successfully: ${info.messageId}`
       );
 
       return {
@@ -2125,15 +2140,17 @@ const sendCustomerOrderEmail =
       };
     } catch (error) {
       console.error(
-        "Customer order email failed:",
-        error.message
+        `[EMAIL] Customer order email failed for ${orderNumber}:`,
+        error?.message ||
+          error
       );
 
       return {
         success: false,
 
         error:
-          error.message,
+          error?.message ||
+          String(error),
       };
     }
   };
@@ -2154,11 +2171,31 @@ const sendOrderEmails =
     let invoiceFilePath =
       null;
 
-    // ---------------------------------------------------
+    const orderNumber =
+      order?.orderNumber ||
+      "Unknown Order";
+
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      `[EMAIL] Starting email process for ${orderNumber}`
+    );
+
+    console.log(
+      "=============================================="
+    );
+
+    // =================================================
     // GENERATE GST PDF
-    // ---------------------------------------------------
+    // =================================================
 
     try {
+      console.log(
+        `[EMAIL] Generating GST invoice for ${orderNumber}...`
+      );
+
       invoiceResult =
         await generateGSTInvoicePDF(
           order
@@ -2176,11 +2213,6 @@ const sendOrderEmails =
 
       invoiceFilePath =
         invoiceResult.filePath;
-
-      // -------------------------------------------------
-      // IMPORTANT:
-      // Use PATH, not content/buffer.
-      // -------------------------------------------------
 
       attachments = [
         {
@@ -2223,8 +2255,9 @@ const sendOrderEmails =
       );
     } catch (error) {
       console.error(
-        "GST invoice PDF generation failed:",
-        error.message
+        `[EMAIL] GST invoice PDF generation failed for ${orderNumber}:`,
+        error?.message ||
+          error
       );
 
       attachments = [];
@@ -2233,15 +2266,30 @@ const sendOrderEmails =
         null;
     }
 
-    // ---------------------------------------------------
+    // =================================================
     // SEND BOTH EMAILS
-    // ---------------------------------------------------
+    // =================================================
+    // Admin and customer emails parallel jayengi.
+    // Ek fail hone par doosri continue karegi.
+    // =================================================
 
-    const [
-      adminResult,
-      customerResult,
-    ] =
-      await Promise.all([
+    let adminResult = {
+      success: false,
+      error:
+        "Admin email not attempted",
+    };
+
+    let customerResult = {
+      success: false,
+      error:
+        "Customer email not attempted",
+    };
+
+    try {
+      [
+        adminResult,
+        customerResult,
+      ] = await Promise.all([
         sendAdminOrderEmail(
           order,
           attachments
@@ -2252,10 +2300,17 @@ const sendOrderEmails =
           attachments
         ),
       ]);
+    } catch (error) {
+      console.error(
+        `[EMAIL] Email Promise.all failed for ${orderNumber}:`,
+        error?.message ||
+          error
+      );
+    }
 
-    // ---------------------------------------------------
+    // =================================================
     // CLEAN TEMP PDF
-    // ---------------------------------------------------
+    // =================================================
 
     if (
       invoiceFilePath
@@ -2264,19 +2319,24 @@ const sendOrderEmails =
         await deleteInvoicePDF(
           invoiceFilePath
         );
+
+        console.log(
+          `[EMAIL] Temporary invoice deleted for ${orderNumber}`
+        );
       } catch (error) {
         console.error(
-          "Temporary invoice PDF deletion failed:",
-          error.message
+          `[EMAIL] Temporary invoice PDF deletion failed for ${orderNumber}:`,
+          error?.message ||
+            error
         );
       }
     }
 
-    // ---------------------------------------------------
+    // =================================================
     // RESULT
-    // ---------------------------------------------------
+    // =================================================
 
-    return {
+    const result = {
       success:
         adminResult.success ||
         customerResult.success,
@@ -2310,6 +2370,41 @@ const sendOrderEmails =
       customer:
         customerResult,
     };
+
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      `[EMAIL] Email process completed for ${orderNumber}`
+    );
+
+    console.log(
+      "Admin:",
+      adminResult.success
+        ? "SUCCESS"
+        : "FAILED"
+    );
+
+    console.log(
+      "Customer:",
+      customerResult.success
+        ? "SUCCESS"
+        : "FAILED"
+    );
+
+    console.log(
+      "Invoice:",
+      invoiceResult
+        ? "SUCCESS"
+        : "FAILED"
+    );
+
+    console.log(
+      "=============================================="
+    );
+
+    return result;
   };
 
 // =====================================================

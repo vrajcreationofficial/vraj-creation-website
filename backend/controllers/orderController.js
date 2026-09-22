@@ -2113,25 +2113,32 @@ const createOrder = async (
       throw error;
     }
 
-    // =================================================
-    // EMAIL
-    // =================================================
+    
+  // =================================================
+// EMAIL - BACKGROUND / NON-BLOCKING
+// =================================================
 
-    try {
-      if (
-        typeof sendOrderEmails ===
-        "function"
-      ) {
-        await sendOrderEmails(
-          order
-        );
-      }
-    } catch (emailError) {
-      console.error(
-        "Order email error:",
-        emailError
+if (
+  typeof sendOrderEmails === "function"
+) {
+  Promise.resolve()
+    .then(() =>
+      sendOrderEmails(order)
+    )
+    .then((emailResult) => {
+      console.log(
+        `[EMAIL] Order ${order.orderNumber} email process completed.`,
+        emailResult || ""
       );
-    }
+    })
+    .catch((emailError) => {
+      console.error(
+        `[EMAIL] Order ${order.orderNumber} email failed:`,
+        emailError?.message ||
+          emailError
+      );
+    });
+}
 
     // =================================================
     // RESPONSE
