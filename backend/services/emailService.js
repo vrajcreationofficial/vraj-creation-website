@@ -67,31 +67,27 @@ const ADMIN_ORDER_EMAIL =
 // indefinitely wait nahi karegi.
 // =====================================================
 
-const transporter =
-  nodemailer.createTransport({
-    host: SMTP_HOST,
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465,
 
-    port: SMTP_PORT,
+  // Force IPv4 on Render
+  family: 4,
 
-    secure:
-      SMTP_PORT === 465,
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  },
 
-    auth: {
-      user: SMTP_USER,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 
-      pass: SMTP_PASS,
-    },
-
-    connectionTimeout: 10000,
-
-    greetingTimeout: 10000,
-
-    socketTimeout: 15000,
-
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
 // =====================================================
 // VERIFY EMAIL CONNECTION
