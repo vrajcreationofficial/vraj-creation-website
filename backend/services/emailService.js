@@ -1890,11 +1890,22 @@ const createOrderHtml = (
 // =====================================================
 // RESEND API HELPER
 // =====================================================
+// Supports:
+// - Order emails
+// - Customer emails
+// - Admin emails
+// - Password reset emails
+// - PDF attachments
+// - HTML + plain text
+// - Optional custom FROM address
+// =====================================================
 
 const sendViaResend = async ({
   to,
+  from,
   subject,
   html,
+  text,
   attachments = [],
 }) => {
   if (!RESEND_API_KEY) {
@@ -1903,7 +1914,11 @@ const sendViaResend = async ({
     );
   }
 
-  if (!EMAIL_FROM) {
+  const sender =
+    from ||
+    EMAIL_FROM;
+
+  if (!sender) {
     throw new Error(
       "EMAIL_FROM is not configured."
     );
@@ -1912,6 +1927,12 @@ const sendViaResend = async ({
   if (!to) {
     throw new Error(
       "Recipient email is required."
+    );
+  }
+
+  if (!subject) {
+    throw new Error(
+      "Email subject is required."
     );
   }
 
@@ -1931,7 +1952,7 @@ const sendViaResend = async ({
     }
 
     // -----------------------------------------------
-    // File path attachment
+    // FILE PATH ATTACHMENT
     // -----------------------------------------------
 
     if (
@@ -1957,7 +1978,7 @@ const sendViaResend = async ({
     }
 
     // -----------------------------------------------
-    // Buffer attachment
+    // BUFFER ATTACHMENT
     // -----------------------------------------------
 
     if (
@@ -1981,7 +2002,7 @@ const sendViaResend = async ({
     }
 
     // -----------------------------------------------
-    // Base64/string attachment
+    // BASE64 / STRING ATTACHMENT
     // -----------------------------------------------
 
     if (
@@ -2006,7 +2027,7 @@ const sendViaResend = async ({
 
   const payload = {
     from:
-      EMAIL_FROM,
+      sender,
 
     to: [
       to,
@@ -2018,9 +2039,25 @@ const sendViaResend = async ({
 
     headers: {
       "X-Vraj-Creation":
-        "Order",
+        "Vraj Creation",
     },
   };
+
+  // ===================================================
+  // OPTIONAL TEXT VERSION
+  // ===================================================
+
+  if (
+    text &&
+    String(text).trim()
+  ) {
+    payload.text =
+      String(text);
+  }
+
+  // ===================================================
+  // ATTACHMENTS
+  // ===================================================
 
   if (
     resendAttachments.length
@@ -2028,6 +2065,14 @@ const sendViaResend = async ({
     payload.attachments =
       resendAttachments;
   }
+
+  // ===================================================
+  // LOG
+  // ===================================================
+
+  console.log(
+    `[RESEND] Sending email to ${to} from ${sender}...`
+  );
 
   // ===================================================
   // SEND REQUEST
@@ -2054,14 +2099,20 @@ const sendViaResend = async ({
       }
     );
 
-  let responseData = null;
+  let responseData =
+    null;
 
   try {
     responseData =
       await response.json();
   } catch {
-    responseData = null;
+    responseData =
+      null;
   }
+
+  // ===================================================
+  // RESEND ERROR
+  // ===================================================
 
   if (
     !response.ok
@@ -2071,10 +2122,23 @@ const sendViaResend = async ({
       responseData?.error ||
       `Resend API returned HTTP ${response.status}`;
 
+    console.error(
+      `[RESEND] Email failed for ${to}:`,
+      errorMessage
+    );
+
     throw new Error(
       errorMessage
     );
   }
+
+  // ===================================================
+  // SUCCESS
+  // ===================================================
+
+  console.log(
+    `[RESEND] Email sent successfully to ${to}`
+  );
 
   return responseData;
 };
@@ -2544,6 +2608,7 @@ const sendOrderEmails =
 // =====================================================
 
 module.exports = {
+  // Kept for compatibility with existing code
   transporter: null,
 
   verifyEmailConnection,
@@ -2552,13 +2617,14 @@ module.exports = {
 
   createOrderHtml,
 
+  sendViaResend,
+
   sendAdminOrderEmail,
 
   sendCustomerOrderEmail,
 
   sendOrderEmails,
 
-  // HSN helpers
   normalizeHSNCode,
 
   getDefaultHSNCode,

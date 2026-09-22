@@ -2,10 +2,17 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+
+const {
+  sendViaResend,
+} = require("../services/emailService");
 
 const Admin = require("../models/Admin");
 const AdminPasswordReset = require("../models/AdminPasswordReset");
+
+// =====================================================
+// JWT CONFIG
+// =====================================================
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET;
 
@@ -15,11 +22,27 @@ const JWT_EXPIRES_IN =
 const JWT_ISSUER = "vraj-creation-admin";
 const JWT_AUDIENCE = "vraj-creation-dashboard";
 
+// =====================================================
+// PASSWORD RESET CONFIG
+// =====================================================
+
 const RESET_OTP_EXPIRES_MINUTES =
   Number(process.env.ADMIN_RESET_OTP_EXPIRES_MINUTES) || 10;
 
 const MAX_OTP_ATTEMPTS =
   Number(process.env.ADMIN_RESET_MAX_OTP_ATTEMPTS) || 5;
+
+// =====================================================
+// RESEND EMAIL CONFIG
+// =====================================================
+
+const EMAIL_FROM =
+  process.env.EMAIL_FROM ||
+  "onboarding@resend.dev";
+
+// =====================================================
+// JWT VALIDATION
+// =====================================================
 
 const validateJwtConfig = () => {
   if (!JWT_SECRET) {
@@ -34,6 +57,10 @@ const validateJwtConfig = () => {
     );
   }
 };
+
+// =====================================================
+// CREATE ADMIN TOKEN
+// =====================================================
 
 const createAdminToken = (admin) => {
   validateJwtConfig();
@@ -57,36 +84,19 @@ const createAdminToken = (admin) => {
   );
 };
 
-const createMailTransporter = () => {
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_PORT ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASS
-  ) {
-    throw new Error(
-      "SMTP configuration is missing in .env"
-    );
-  }
-
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure:
-      String(process.env.SMTP_SECURE).toLowerCase() ===
-      "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-};
+// =====================================================
+// GENERATE OTP
+// =====================================================
 
 const generateOtp = () => {
   return crypto
     .randomInt(100000, 1000000)
     .toString();
 };
+
+// =====================================================
+// HASH OTP
+// =====================================================
 
 const hashOtp = (otp) => {
   return crypto
@@ -95,17 +105,41 @@ const hashOtp = (otp) => {
     .digest("hex");
 };
 
+// =====================================================
+// ESCAPE HTML
+// =====================================================
+
+const escapeHtml = (value) => {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// =====================================================
+// SEND PASSWORD RESET OTP USING RESEND
+// =====================================================
+
 const sendPasswordResetOtp = async ({
   email,
   username,
   otp,
 }) => {
-  const transporter =
-    createMailTransporter();
+  const cleanEmail =
+    String(email || "")
+      .trim()
+      .toLowerCase();
 
-  const from =
-    process.env.SMTP_FROM ||
-    process.env.SMTP_USER;
+  const cleanUsername =
+    escapeHtml(username || "Admin");
+
+  if (!cleanEmail) {
+    throw new Error(
+      "Password reset recipient email is missing."
+    );
+  }
 
   const logoUrl =
     process.env.VRAJ_LOGO_URL || "";
@@ -114,7 +148,7 @@ const sendPasswordResetOtp = async ({
     ? `
       <div style="text-align:center;margin-bottom:20px;">
         <img
-          src="${logoUrl}"
+          src="${escapeHtml(logoUrl)}"
           alt="Vraj Creation India"
           style="
             width:90px;
@@ -134,7 +168,7 @@ const sendPasswordResetOtp = async ({
     "Vraj Creation Admin - Password Reset OTP";
 
   const text = `
-Hello ${username},
+Hello ${username || "Admin"},
 
 We received a request to reset your Vraj Creation admin dashboard password.
 
@@ -161,95 +195,134 @@ Admin Dashboard
 <title>Password Reset OTP</title>
 </head>
 
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:#f1f5f9;
+    font-family:Arial,Helvetica,sans-serif;
+  "
+>
 
-<div style="width:100%;padding:40px 15px;box-sizing:border-box;">
+<div
+  style="
+    width:100%;
+    padding:40px 15px;
+    box-sizing:border-box;
+  "
+>
 
-<div style="
-max-width:600px;
-margin:0 auto;
-background:#ffffff;
-border-radius:18px;
-overflow:hidden;
-border:1px solid #e2e8f0;
-box-shadow:0 10px 30px rgba(15,23,42,0.08);
-">
+<div
+  style="
+    max-width:600px;
+    margin:0 auto;
+    background:#ffffff;
+    border-radius:18px;
+    overflow:hidden;
+    border:1px solid #e2e8f0;
+    box-shadow:0 10px 30px rgba(15,23,42,0.08);
+  "
+>
 
-<div style="
-background:linear-gradient(135deg,#4f46e5,#7c3aed);
-padding:30px 20px;
-text-align:center;
-color:#ffffff;
-">
+<!-- HEADER -->
+
+<div
+  style="
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    padding:30px 20px;
+    text-align:center;
+    color:#ffffff;
+  "
+>
 
 ${logoHtml}
 
-<h1 style="
-margin:0;
-font-size:27px;
-font-weight:700;
-">
+<h1
+  style="
+    margin:0;
+    font-size:27px;
+    font-weight:700;
+  "
+>
 Vraj Creation India
 </h1>
 
-<p style="
-margin:8px 0 0;
-font-size:14px;
-opacity:0.95;
-">
+<p
+  style="
+    margin:8px 0 0;
+    font-size:14px;
+    opacity:0.95;
+  "
+>
 Bringing Art to Life
 </p>
 
 </div>
 
+<!-- CONTENT -->
+
 <div style="padding:35px 30px;">
 
-<h2 style="
-margin:0 0 15px;
-color:#0f172a;
-font-size:23px;
-">
+<h2
+  style="
+    margin:0 0 15px;
+    color:#0f172a;
+    font-size:23px;
+  "
+>
 Password Reset Request
 </h2>
 
-<p style="
-margin:0 0 15px;
-color:#475569;
-font-size:15px;
-line-height:1.7;
-">
-Hello ${username},
+<p
+  style="
+    margin:0 0 15px;
+    color:#475569;
+    font-size:15px;
+    line-height:1.7;
+  "
+>
+Hello ${cleanUsername},
 </p>
 
-<p style="
-margin:0 0 25px;
-color:#475569;
-font-size:15px;
-line-height:1.7;
-">
+<p
+  style="
+    margin:0 0 25px;
+    color:#475569;
+    font-size:15px;
+    line-height:1.7;
+  "
+>
 We received a request to reset your Vraj Creation admin dashboard password.
 Use the OTP below to continue.
 </p>
 
-<div style="
-text-align:center;
-margin:30px 0;
-">
+<!-- OTP -->
 
-<div style="
-display:inline-block;
-padding:18px 30px;
-background:#eef2ff;
-border-radius:14px;
-border:1px solid #c7d2fe;
-">
+<div
+  style="
+    text-align:center;
+    margin:30px 0;
+  "
+>
 
-<span style="
-font-size:32px;
-font-weight:700;
-letter-spacing:8px;
-color:#4338ca;
-">
+<div
+  style="
+    display:inline-block;
+    padding:18px 30px;
+    background:#eef2ff;
+    border-radius:14px;
+    border:1px solid #c7d2fe;
+  "
+>
+
+<span
+  style="
+    font-size:32px;
+    font-weight:700;
+    letter-spacing:8px;
+    color:#4338ca;
+  "
+>
 ${otp}
 </span>
 
@@ -257,29 +330,37 @@ ${otp}
 
 </div>
 
-<p style="
-margin:0 0 20px;
-text-align:center;
-color:#64748b;
-font-size:14px;
-">
+<p
+  style="
+    margin:0 0 20px;
+    text-align:center;
+    color:#64748b;
+    font-size:14px;
+  "
+>
 This OTP will expire in ${RESET_OTP_EXPIRES_MINUTES} minutes.
 </p>
 
-<div style="
-margin-top:25px;
-padding:15px;
-border-radius:12px;
-background:#f8fafc;
-border:1px solid #e2e8f0;
-">
+<!-- SECURITY NOTE -->
 
-<p style="
-margin:0;
-color:#64748b;
-font-size:13px;
-line-height:1.6;
-">
+<div
+  style="
+    margin-top:25px;
+    padding:15px;
+    border-radius:12px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+  "
+>
+
+<p
+  style="
+    margin:0;
+    color:#64748b;
+    font-size:13px;
+    line-height:1.6;
+  "
+>
 If you did not request a password reset, you can safely ignore this email.
 Your password will not be changed unless the OTP is successfully verified.
 </p>
@@ -288,26 +369,34 @@ Your password will not be changed unless the OTP is successfully verified.
 
 </div>
 
-<div style="
-padding:20px;
-text-align:center;
-background:#f8fafc;
-border-top:1px solid #e2e8f0;
-">
+<!-- FOOTER -->
 
-<p style="
-margin:0;
-color:#64748b;
-font-size:13px;
-">
+<div
+  style="
+    padding:20px;
+    text-align:center;
+    background:#f8fafc;
+    border-top:1px solid #e2e8f0;
+  "
+>
+
+<p
+  style="
+    margin:0;
+    color:#64748b;
+    font-size:13px;
+  "
+>
 Vraj Creation India
 </p>
 
-<p style="
-margin:5px 0 0;
-color:#94a3b8;
-font-size:12px;
-">
+<p
+  style="
+    margin:5px 0 0;
+    color:#94a3b8;
+    font-size:12px;
+  "
+>
 Bringing Art to Life
 </p>
 
@@ -321,14 +410,22 @@ Bringing Art to Life
 </html>
 `;
 
-  await transporter.sendMail({
-    from,
-    to: email,
+  // ===================================================
+  // SEND THROUGH RESEND API
+  // ===================================================
+
+  await sendViaResend({
+    to: cleanEmail,
+    from: EMAIL_FROM,
     subject,
-    text,
     html,
+    text,
   });
 };
+
+// =====================================================
+// ADMIN REGISTER
+// =====================================================
 
 const adminRegister = async (req, res) => {
   try {
@@ -476,9 +573,7 @@ const adminRegister = async (req, res) => {
       error
     );
 
-    if (
-      error.code === 11000
-    ) {
+    if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message:
@@ -493,6 +588,10 @@ const adminRegister = async (req, res) => {
     });
   }
 };
+
+// =====================================================
+// ADMIN LOGIN
+// =====================================================
 
 const adminLogin = async (req, res) => {
   try {
@@ -544,9 +643,7 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    if (
-      admin.status === "pending"
-    ) {
+    if (admin.status === "pending") {
       return res.status(403).json({
         success: false,
         code: "ADMIN_PENDING",
@@ -555,9 +652,7 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    if (
-      admin.status === "rejected"
-    ) {
+    if (admin.status === "rejected") {
       return res.status(403).json({
         success: false,
         code: "ADMIN_REJECTED",
@@ -566,9 +661,7 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    if (
-      admin.status !== "approved"
-    ) {
+    if (admin.status !== "approved") {
       return res.status(403).json({
         success: false,
         message:
@@ -617,6 +710,10 @@ const adminLogin = async (req, res) => {
     });
   }
 };
+
+// =====================================================
+// FORGOT ADMIN PASSWORD
+// =====================================================
 
 const forgotAdminPassword = async (
   req,
@@ -682,10 +779,12 @@ const forgotAdminPassword = async (
       );
     }
 
+    // Remove previous reset requests
     await AdminPasswordReset.deleteMany({
       adminId: admin._id,
     });
 
+    // Generate OTP
     const otp =
       generateOtp();
 
@@ -700,6 +799,7 @@ const forgotAdminPassword = async (
             1000
       );
 
+    // Save OTP
     await AdminPasswordReset.create({
       adminId: admin._id,
       email: cleanEmail,
@@ -709,19 +809,32 @@ const forgotAdminPassword = async (
       verified: false,
     });
 
+    // =================================================
+    // SEND OTP THROUGH RESEND
+    // =================================================
+
     try {
+      console.log(
+        `[PASSWORD RESET] Sending OTP to ${cleanEmail} using Resend...`
+      );
+
       await sendPasswordResetOtp({
         email: cleanEmail,
         username: admin.username,
         otp,
       });
+
+      console.log(
+        `[PASSWORD RESET] OTP email sent successfully to ${cleanEmail}`
+      );
     } catch (emailError) {
+      // Delete OTP if email failed
       await AdminPasswordReset.deleteMany({
         adminId: admin._id,
       });
 
       console.error(
-        "Password reset email error:",
+        `[PASSWORD RESET] Email sending failed for ${cleanEmail}:`,
         emailError
       );
 
@@ -748,6 +861,10 @@ const forgotAdminPassword = async (
     });
   }
 };
+
+// =====================================================
+// VERIFY ADMIN RESET OTP
+// =====================================================
 
 const verifyAdminResetOtp = async (
   req,
@@ -848,6 +965,7 @@ const verifyAdminResetOtp = async (
     }
 
     resetRequest.verified = true;
+
     resetRequest.verifiedAt =
       new Date();
 
@@ -873,6 +991,10 @@ const verifyAdminResetOtp = async (
     });
   }
 };
+
+// =====================================================
+// RESET ADMIN PASSWORD
+// =====================================================
 
 const resetAdminPassword = async (
   req,
@@ -1041,11 +1163,13 @@ const resetAdminPassword = async (
     admin.passwordHash =
       newPasswordHash;
 
+    // Invalidate old JWT tokens
     admin.tokenVersion =
       (admin.tokenVersion || 0) + 1;
 
     await admin.save();
 
+    // Delete all reset requests
     await AdminPasswordReset.deleteMany({
       adminId: admin._id,
     });
@@ -1068,6 +1192,10 @@ const resetAdminPassword = async (
     });
   }
 };
+
+// =====================================================
+// VERIFY ADMIN
+// =====================================================
 
 const verifyAdmin = async (
   req,
@@ -1105,6 +1233,10 @@ const verifyAdmin = async (
     });
   }
 };
+
+// =====================================================
+// ADMIN LOGOUT
+// =====================================================
 
 const adminLogout = async (
   req,
@@ -1162,6 +1294,10 @@ const adminLogout = async (
   }
 };
 
+// =====================================================
+// GET PENDING ADMINS
+// =====================================================
+
 const getPendingAdmins = async (
   req,
   res
@@ -1197,6 +1333,10 @@ const getPendingAdmins = async (
     });
   }
 };
+
+// =====================================================
+// GET ALL ADMINS
+// =====================================================
 
 const getAllAdmins = async (
   req,
@@ -1240,6 +1380,10 @@ const getAllAdmins = async (
     });
   }
 };
+
+// =====================================================
+// APPROVE ADMIN
+// =====================================================
 
 const approveAdmin = async (
   req,
@@ -1330,6 +1474,10 @@ const approveAdmin = async (
   }
 };
 
+// =====================================================
+// REJECT ADMIN
+// =====================================================
+
 const rejectAdmin = async (
   req,
   res
@@ -1418,6 +1566,10 @@ const rejectAdmin = async (
     });
   }
 };
+
+// =====================================================
+// EXPORTS
+// =====================================================
 
 module.exports = {
   adminRegister,
