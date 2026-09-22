@@ -20,6 +20,10 @@ const BACKEND_BASE_URL =
 
 const ProductContext = createContext(null);
 
+// =====================================================
+// HELPERS
+// =====================================================
+
 const toNumber = (value) => {
   if (
     value === null ||
@@ -66,6 +70,10 @@ const normalizeCategory = (value) => {
     .replace(/\s+/g, " ");
 };
 
+// =====================================================
+// NORMALIZE IMAGE URL
+// =====================================================
+
 const normalizeImageURL = (image) => {
   const value = normalizeText(image);
 
@@ -93,12 +101,20 @@ const normalizeImageURL = (image) => {
   return `${BACKEND_BASE_URL}/${value}`;
 };
 
+// =====================================================
+// PRODUCT SKU
+// =====================================================
+
 const getProductSKU = (product) => {
   return normalizeSKU(
     product?.sku ||
       product?.SKU
   );
 };
+
+// =====================================================
+// NORMALIZE PRODUCT
+// =====================================================
 
 const normalizeProduct = (product) => {
   if (!product) {
@@ -173,6 +189,10 @@ const normalizeProduct = (product) => {
       product.updatedAt || null,
   };
 };
+
+// =====================================================
+// NORMALIZE COLLECTION
+// =====================================================
 
 const normalizeCollection = (
   collection
@@ -287,6 +307,10 @@ const normalizeCollection = (
   };
 };
 
+// =====================================================
+// NORMALIZE CATEGORY
+// =====================================================
+
 const normalizeCategoryItem = (
   category
 ) => {
@@ -341,6 +365,10 @@ const normalizeCategoryItem = (
   };
 };
 
+// =====================================================
+// PRODUCT PROVIDER
+// =====================================================
+
 export function ProductProvider({
   children,
 }) {
@@ -363,6 +391,10 @@ export function ProductProvider({
   const [error, setError] =
     useState("");
 
+  // ===================================================
+  // FETCH PRODUCTS
+  // ===================================================
+
   const fetchProducts =
     useCallback(async () => {
       try {
@@ -383,6 +415,10 @@ export function ProductProvider({
               cache: "no-store",
             }
           );
+
+        // =============================================
+        // RATE LIMIT
+        // =============================================
 
         if (
           response.status === 429
@@ -406,6 +442,10 @@ export function ProductProvider({
           return;
         }
 
+        // =============================================
+        // HTTP ERROR
+        // =============================================
+
         if (!response.ok) {
           const data =
             await response
@@ -420,6 +460,10 @@ export function ProductProvider({
           );
         }
 
+        // =============================================
+        // RESPONSE JSON
+        // =============================================
+
         const data =
           await response.json();
 
@@ -429,6 +473,10 @@ export function ProductProvider({
               "Failed to fetch products."
           );
         }
+
+        // =============================================
+        // PRODUCTS
+        // =============================================
 
         const sourceProducts =
           Array.isArray(
@@ -448,6 +496,10 @@ export function ProductProvider({
             )
             .filter(Boolean);
 
+        // =============================================
+        // COLLECTIONS
+        // =============================================
+
         const sourceCollections =
           Array.isArray(
             data.collections
@@ -462,6 +514,10 @@ export function ProductProvider({
             )
             .filter(Boolean);
 
+        // =============================================
+        // CATEGORIES
+        // =============================================
+
         const sourceCategories =
           Array.isArray(
             data.categories
@@ -475,6 +531,10 @@ export function ProductProvider({
               normalizeCategoryItem
             )
             .filter(Boolean);
+
+        // =============================================
+        // FALLBACK CATEGORIES
+        // =============================================
 
         if (
           liveCategories.length ===
@@ -545,6 +605,10 @@ export function ProductProvider({
             );
         }
 
+        // =============================================
+        // FALLBACK COLLECTIONS
+        // =============================================
+
         let finalCollections =
           liveCollections;
 
@@ -581,6 +645,10 @@ export function ProductProvider({
               })
             );
         }
+
+        // =============================================
+        // SET STATE
+        // =============================================
 
         setProducts(
           liveProducts
@@ -621,9 +689,17 @@ export function ProductProvider({
       }
     }, []);
 
+  // ===================================================
+  // INITIAL FETCH
+  // ===================================================
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // ===================================================
+  // GET PRODUCT BY SKU
+  // ===================================================
 
   const getProductBySKU =
     useCallback(
@@ -647,6 +723,10 @@ export function ProductProvider({
       [products]
     );
 
+  // ===================================================
+  // GET PRODUCT
+  // ===================================================
+
   const getProduct =
     useCallback(
       (sku) => {
@@ -656,6 +736,10 @@ export function ProductProvider({
       },
       [getProductBySKU]
     );
+
+  // ===================================================
+  // GET PRODUCTS BY CATEGORY
+  // ===================================================
 
   const getProductsByCategory =
     useCallback(
@@ -681,6 +765,10 @@ export function ProductProvider({
       },
       [products]
     );
+
+  // ===================================================
+  // GET COLLECTION BY CATEGORY
+  // ===================================================
 
   const getCollectionByCategory =
     useCallback(
@@ -710,6 +798,10 @@ export function ProductProvider({
       [collections]
     );
 
+  // ===================================================
+  // GET CATEGORY
+  // ===================================================
+
   const getCategory =
     useCallback(
       (category) => {
@@ -737,6 +829,10 @@ export function ProductProvider({
       },
       [categories]
     );
+
+  // ===================================================
+  // CONTEXT VALUE
+  // ===================================================
 
   const value =
     useMemo(
@@ -779,6 +875,10 @@ export function ProductProvider({
       ]
     );
 
+  // ===================================================
+  // PROVIDER
+  // ===================================================
+
   return (
     <ProductContext.Provider
       value={value}
@@ -787,6 +887,10 @@ export function ProductProvider({
     </ProductContext.Provider>
   );
 }
+
+// =====================================================
+// USE PRODUCTS HOOK
+// =====================================================
 
 export function useProducts() {
   const context =
