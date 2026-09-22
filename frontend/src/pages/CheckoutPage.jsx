@@ -24,6 +24,10 @@ import { QRCodeCanvas } from "qrcode.react";
 import { useCart } from "../context/CartContext";
 import { useDiscount } from "../context/DiscountContext";
 
+// =====================================================
+// API CONFIG
+// =====================================================
+
 const VRAJ_API =
   import.meta.env.VITE_API_URL?.trim() ||
   "http://localhost:5000/api";
@@ -31,8 +35,16 @@ const VRAJ_API =
 const VRAJ_SERVER_URL =
   VRAJ_API.replace(/\/api\/?$/, "");
 
+// =====================================================
+// VRAJ CREATION PAYMENT
+// =====================================================
+
 const VRAJ_UPI_ID = "8824968974@ybl";
 const VRAJ_UPI_NAME = "Vraj Creation";
+
+// =====================================================
+// GST CONFIG
+// =====================================================
 
 const BUSINESS_STATE = "Rajasthan";
 
@@ -42,395 +54,135 @@ const SGST_RATE = 2.5;
 
 const FREE_SHIPPING_THRESHOLD = 999;
 
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry",
-];
+// =====================================================
+// HELPERS
+// =====================================================
 
-const STATE_CODES = {
-  "Jammu and Kashmir": "01",
-  "Himachal Pradesh": "02",
-  Punjab: "03",
-  Chandigarh: "04",
-  Uttarakhand: "05",
-  Haryana: "06",
-  Delhi: "07",
-  Rajasthan: "08",
-  "Uttar Pradesh": "09",
-  Bihar: "10",
-  Sikkim: "11",
-  "Arunachal Pradesh": "12",
-  Nagaland: "13",
-  Manipur: "14",
-  Mizoram: "15",
-  Tripura: "16",
-  Meghalaya: "17",
-  Assam: "18",
-  "West Bengal": "19",
-  Jharkhand: "20",
-  Odisha: "21",
-  Chhattisgarh: "22",
-  "Madhya Pradesh": "23",
-  Gujarat: "24",
-  "Dadra and Nagar Haveli and Daman and Diu": "26",
-  Maharashtra: "27",
-  Karnataka: "29",
-  Goa: "30",
-  Lakshadweep: "31",
-  Kerala: "32",
-  "Tamil Nadu": "33",
-  Puducherry: "34",
-  "Andaman and Nicobar Islands": "35",
-  Telangana: "36",
-  "Andhra Pradesh": "37",
+const safeNumber = (
+  value,
+  fallback = 0
+) => {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : fallback;
 };
 
-const STATE_ALIASES = {
-  raj: "Rajasthan",
-  rajasthan: "Rajasthan",
-  mh: "Maharashtra",
-  maharashtra: "Maharashtra",
-  mp: "Madhya Pradesh",
-  "madhya pradesh": "Madhya Pradesh",
-  up: "Uttar Pradesh",
-  "uttar pradesh": "Uttar Pradesh",
-  dl: "Delhi",
-  delhi: "Delhi",
-  "new delhi": "Delhi",
-  hr: "Haryana",
-  haryana: "Haryana",
-  pb: "Punjab",
-  punjab: "Punjab",
-  gj: "Gujarat",
-  gujarat: "Gujarat",
-  ka: "Karnataka",
-  karnataka: "Karnataka",
-  tn: "Tamil Nadu",
-  "tamil nadu": "Tamil Nadu",
-  kl: "Kerala",
-  kerala: "Kerala",
-  tg: "Telangana",
-  ts: "Telangana",
-  telangana: "Telangana",
-  ap: "Andhra Pradesh",
-  "andhra pradesh": "Andhra Pradesh",
-  wb: "West Bengal",
-  "west bengal": "West Bengal",
-  br: "Bihar",
-  bihar: "Bihar",
-  jh: "Jharkhand",
-  jharkhand: "Jharkhand",
-  od: "Odisha",
-  orissa: "Odisha",
-  odisha: "Odisha",
-  cg: "Chhattisgarh",
-  chhattisgarh: "Chhattisgarh",
-  uk: "Uttarakhand",
-  uttarakhand: "Uttarakhand",
-  hp: "Himachal Pradesh",
-  "himachal pradesh": "Himachal Pradesh",
-  jk: "Jammu and Kashmir",
-  "jammu and kashmir": "Jammu and Kashmir",
-  ladakh: "Ladakh",
-  goa: "Goa",
-  sikkim: "Sikkim",
-  assam: "Assam",
-  manipur: "Manipur",
-  meghalaya: "Meghalaya",
-  mizoram: "Mizoram",
-  nagaland: "Nagaland",
-  tripura: "Tripura",
+const round2 = (value) => {
+  return Number(
+    safeNumber(value, 0).toFixed(2)
+  );
 };
 
-const round2 = (value) =>
-  Math.round(
-    (Number(value || 0) + Number.EPSILON) * 100
-  ) / 100;
-
-const safeNumber = (value, fallback = 0) => {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+const formatPrice = (value) => {
+  return `₹${round2(value).toFixed(2)}`;
 };
 
-const normalizeMobile = (value) => {
-  let mobile = String(value ?? "").replace(/\D/g, "");
-
-  if (mobile.startsWith("91") && mobile.length > 10) {
-    mobile = mobile.slice(2);
-  }
-
-  return mobile.slice(0, 10);
-};
-
-const isValidIndianMobile = (value) => {
-  const mobile = normalizeMobile(value);
-  return /^[6-9]\d{9}$/.test(mobile);
-};
-
-const normalizeSKU = (value) =>
-  String(value || "")
+const normalizeText = (value) => {
+  return String(value ?? "")
     .trim()
-    .toUpperCase();
-
-const normalizeStateName = (value) => {
-  const raw = String(value || "")
-    .trim()
-    .replace(/\s+/g, " ");
-
-  if (!raw) return "";
-
-  const lower = raw.toLowerCase();
-
-  if (STATE_ALIASES[lower]) {
-    return STATE_ALIASES[lower];
-  }
-
-  const found = INDIAN_STATES.find(
-    (state) => state.toLowerCase() === lower
-  );
-
-  return found || raw;
+    .toLowerCase();
 };
 
-const getStateCode = (state) => {
-  const normalized = normalizeStateName(state);
-  return STATE_CODES[normalized] || "";
+const normalizeSKU = (value) => {
+  return String(value ?? "")
+    .trim();
 };
 
-const formatCurrency = (value) =>
-  `₹${round2(value).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
-const isValidEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-    String(email || "").trim()
-  );
-
-const isValidPincode = (pincode) =>
-  /^\d{6}$/.test(String(pincode || ""));
-
-const isValidUPIVPA = (value) => {
-  const upi = String(value || "").trim();
-
-  return /^[A-Za-z0-9][A-Za-z0-9._-]{1,255}@[A-Za-z0-9][A-Za-z0-9.-]{0,63}$/.test(
-    upi
+const isValidPincode = (value) => {
+  return /^[1-9][0-9]{5}$/.test(
+    String(value ?? "")
+      .trim()
+      .replace(/\s+/g, "")
   );
 };
 
-const normalizeTransactionId = (value) =>
-  String(value || "")
-    .toUpperCase()
-    .replace(/\s/g, "")
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 40);
-
-const getProductSKU = (item) =>
-  normalizeSKU(
+const getProductSKU = (item) => {
+  return normalizeSKU(
     item?.sku ||
       item?.SKU ||
       item?.productSku ||
       item?.productSKU ||
       item?.product?.sku ||
+      item?.product?.SKU ||
       ""
   );
+};
+
+const getProductName = (item) => {
+  return (
+    item?.name ||
+    item?.productName ||
+    item?.title ||
+    item?.product?.name ||
+    item?.product?.title ||
+    "Product"
+  );
+};
+
+const getCategory = (item) => {
+  return (
+    item?.category ||
+    item?.product?.category ||
+    ""
+  );
+};
+
+const getSubcategory = (item) => {
+  return (
+    item?.subcategory ||
+    item?.subCategory ||
+    item?.product?.subcategory ||
+    item?.product?.subCategory ||
+    ""
+  );
+};
 
 const getProductImage = (item) => {
-  let image = null;
-
-  if (typeof item?.image === "string") {
-    image = item.image;
-  } else if (typeof item?.imageUrl === "string") {
-    image = item.imageUrl;
-  } else if (typeof item?.productImage === "string") {
-    image = item.productImage;
-  } else if (typeof item?.product?.image === "string") {
-    image = item.product.image;
-  } else if (
-    typeof item?.product?.imageUrl === "string"
-  ) {
-    image = item.product.imageUrl;
-  }
-
-  if (
-    typeof image !== "string" ||
-    !image.trim()
-  ) {
-    return null;
-  }
-
-  const cleanImage = image.trim();
-
-  if (
-    cleanImage.startsWith("http://") ||
-    cleanImage.startsWith("https://") ||
-    cleanImage.startsWith("data:") ||
-    cleanImage.startsWith("blob:")
-  ) {
-    return cleanImage;
-  }
-
-  return `${VRAJ_SERVER_URL}/${cleanImage.replace(
-    /^\/+/,
+  return (
+    item?.image ||
+    item?.imageUrl ||
+    item?.productImage ||
+    item?.product?.image ||
+    item?.product?.imageUrl ||
     ""
-  )}`;
+  );
 };
 
-const getProductName = (item) =>
-  item?.name ||
-  item?.productName ||
-  item?.title ||
-  item?.product?.name ||
-  "Product";
-
-const getQuantity = (item) =>
-  Math.max(
-    1,
-    safeNumber(
-      item?.quantity ??
-        item?.qty ??
-        item?.count ??
-        1,
-      1
-    )
+const getDescription = (item) => {
+  return (
+    item?.description ||
+    item?.product?.description ||
+    ""
   );
+};
 
-const getOriginalPrice = (item) => {
-  const price =
-    item?.originalPrice ??
-    item?.mrp ??
-    item?.listPrice ??
-    item?.regularPrice ??
-    item?.price ??
-    item?.sellingPrice ??
-    item?.salePrice ??
-    0;
+const getSize = (item) => {
+  return (
+    item?.size ||
+    item?.product?.size ||
+    ""
+  );
+};
 
+const getQuantity = (item) => {
   return Math.max(
-    0,
-    round2(safeNumber(price))
-  );
-};
-
-const getPrice = (item) => {
-  const original = getOriginalPrice(item);
-
-  let selling =
-    item?.sellingPrice ??
-    item?.salePrice ??
-    item?.discountedPrice ??
-    item?.currentPrice ??
-    item?.price ??
-    original;
-
-  selling = Math.max(
-    0,
-    round2(
+    1,
+    Math.floor(
       safeNumber(
-        selling,
-        original
+        item?.quantity ??
+          item?.qty ??
+          item?.count ??
+          1,
+        1
       )
     )
   );
-
-  const discountPercent = safeNumber(
-    item?.discountPercent ??
-      item?.discountPercentage ??
-      item?.discount ??
-      0
-  );
-
-  if (
-    selling === original &&
-    discountPercent > 0 &&
-    discountPercent < 100
-  ) {
-    selling = round2(
-      original -
-        (original * discountPercent) / 100
-    );
-  }
-
-  return Math.min(
-    selling,
-    original
-  );
 };
 
-const getDiscountPercent = (item) => {
-  const original = getOriginalPrice(item);
-  const selling = getPrice(item);
-
-  if (original <= 0) {
-    return 0;
-  }
-
-  return round2(
-    ((original - selling) / original) * 100
-  );
-};
-
-const getCategory = (item) =>
-  item?.category ||
-  item?.productCategory ||
-  item?.product?.category ||
-  "";
-
-const getSubcategory = (item) =>
-  item?.subcategory ||
-  item?.subCategory ||
-  item?.product?.subcategory ||
-  "";
-
-const getDescription = (item) =>
-  item?.description ||
-  item?.product?.description ||
-  "";
-
-const getSize = (item) =>
-  item?.size ||
-  item?.dimensions ||
-  item?.product?.size ||
-  item?.product?.dimensions ||
-  "";
-
-const getWeight = (item) =>
-  Math.max(
+const getWeight = (item) => {
+  return Math.max(
     0,
     safeNumber(
       item?.weightGrams ??
@@ -440,85 +192,276 @@ const getWeight = (item) =>
         0
     )
   );
+};
 
-const calculateGST = (
-  totalAmountBeforeTax,
-  customerState
-) => {
-  const baseAmount = round2(
-    Math.max(
-      0,
-      safeNumber(totalAmountBeforeTax)
-    )
+const getOriginalPrice = (item) => {
+  const value =
+    item?.originalPrice ??
+    item?.mrp ??
+    item?.price ??
+    item?.product?.originalPrice ??
+    item?.product?.mrp ??
+    item?.product?.price ??
+    0;
+
+  return Math.max(
+    0,
+    safeNumber(value, 0)
   );
+};
 
-  const normalizedCustomerState =
-    normalizeStateName(customerState);
+const getSellingPrice = (item) => {
+  const value =
+    item?.sellingPrice ??
+    item?.salePrice ??
+    item?.price ??
+    item?.product?.sellingPrice ??
+    item?.product?.salePrice ??
+    item?.product?.price ??
+    0;
 
-  const normalizedBusinessState =
-    normalizeStateName(BUSINESS_STATE);
-
-  const isInterState = Boolean(
-    normalizedCustomerState &&
-      normalizedBusinessState &&
-      normalizedCustomerState !==
-        normalizedBusinessState
+  return Math.max(
+    0,
+    safeNumber(value, 0)
   );
+};
 
-  const totalGST = round2(
-    (baseAmount * GST_RATE) / 100
-  );
+const getDiscountPercent = (item) => {
+  const explicit =
+    item?.discountPercent ??
+    item?.discount ??
+    item?.product?.discountPercent ??
+    item?.product?.discount ??
+    0;
 
-  let cgst = 0;
-  let sgst = 0;
-  let igst = 0;
-
-  if (isInterState) {
-    igst = totalGST;
-  } else {
-    cgst = round2(
-      (baseAmount * CGST_RATE) / 100
+  const explicitNumber =
+    safeNumber(
+      explicit,
+      0
     );
 
-    sgst = round2(totalGST - cgst);
+  if (
+    explicitNumber > 0 &&
+    explicitNumber <= 100
+  ) {
+    return explicitNumber;
   }
 
-  const finalAmount = round2(
-    baseAmount + totalGST
-  );
+  const original =
+    getOriginalPrice(item);
+
+  const selling =
+    getSellingPrice(item);
+
+  if (
+    original > 0 &&
+    selling < original
+  ) {
+    return round2(
+      ((original - selling) /
+        original) *
+        100
+    );
+  }
+
+  return 0;
+};
+
+// =====================================================
+// STATE COMPARISON
+// =====================================================
+
+const isSameState = (
+  state1,
+  state2
+) => {
+  const a =
+    normalizeText(state1);
+
+  const b =
+    normalizeText(state2);
+
+  if (!a || !b) {
+    return true;
+  }
+
+  return a === b;
+};
+
+// =====================================================
+// GST CALCULATION
+// =====================================================
+
+const calculateGST = (
+  taxableValue,
+  customerState
+) => {
+  const base =
+    round2(
+      Math.max(
+        0,
+        safeNumber(
+          taxableValue,
+          0
+        )
+      )
+    );
+
+  const interState =
+    !isSameState(
+      BUSINESS_STATE,
+      customerState
+    );
+
+  const totalGST =
+    round2(
+      base *
+        (GST_RATE / 100)
+    );
+
+  if (interState) {
+    return {
+      taxableValue: base,
+      totalGST,
+      cgst: 0,
+      sgst: 0,
+      igst: totalGST,
+      cgstRate: 0,
+      sgstRate: 0,
+      igstRate: GST_RATE,
+      isInterState: true,
+      sellerState:
+        BUSINESS_STATE,
+      customerState:
+        customerState ||
+        "",
+    };
+  }
+
+  const cgst =
+    round2(
+      totalGST / 2
+    );
+
+  const sgst =
+    round2(
+      totalGST - cgst
+    );
 
   return {
-    totalAmountBeforeTax: baseAmount,
-    taxableAmount: baseAmount,
-    taxableValue: baseAmount,
+    taxableValue: base,
     totalGST,
     cgst,
     sgst,
-    igst,
-    cgstRate: isInterState ? 0 : CGST_RATE,
-    sgstRate: isInterState ? 0 : SGST_RATE,
-    igstRate: isInterState ? GST_RATE : 0,
-    rate: GST_RATE,
-    isInterState,
-    sellerState: normalizedBusinessState,
-    sellerStateCode: getStateCode(
-      normalizedBusinessState
-    ),
-    customerState: normalizedCustomerState,
-    customerStateCode: getStateCode(
-      normalizedCustomerState
-    ),
-    pricingMode: "gst_exclusive",
-    amountWithGST: finalAmount,
-    finalAmount,
+    igst: 0,
+    cgstRate: CGST_RATE,
+    sgstRate: SGST_RATE,
+    igstRate: 0,
+    isInterState: false,
+    sellerState:
+      BUSINESS_STATE,
+    customerState:
+      customerState ||
+      BUSINESS_STATE,
   };
 };
 
-export default function CheckoutPage() {
-  const navigate = useNavigate();
+// =====================================================
+// PINCODE API
+// =====================================================
 
-  const cartContext = useCart();
-  const discountContext = useDiscount();
+const fetchPincodeDetails = async (
+  pincode
+) => {
+  const cleanPincode =
+    String(pincode ?? "")
+      .trim();
+
+  if (
+    !isValidPincode(
+      cleanPincode
+    )
+  ) {
+    return null;
+  }
+
+  const response =
+    await fetch(
+      `https://api.postalpincode.in/pincode/${cleanPincode}`
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      "Pincode details fetch nahi ho paye."
+    );
+  }
+
+  const data =
+    await response.json();
+
+  if (
+    !Array.isArray(data) ||
+    !data[0] ||
+    data[0].Status !==
+      "Success" ||
+    !Array.isArray(
+      data[0].PostOffice
+    ) ||
+    data[0].PostOffice.length ===
+      0
+  ) {
+    throw new Error(
+      "Pincode not found."
+    );
+  }
+
+  const postOffice =
+    data[0].PostOffice[0];
+
+  return {
+    postOffice:
+      postOffice?.Name ||
+      "",
+
+    district:
+      postOffice?.District ||
+      "",
+
+    state:
+      postOffice?.State ||
+      "",
+
+    division:
+      postOffice?.Division ||
+      "",
+
+    region:
+      postOffice?.Region ||
+      "",
+
+    country:
+      postOffice?.Country ||
+      "India",
+  };
+};
+
+// =====================================================
+// CHECKOUT PAGE
+// =====================================================
+
+const CheckoutPage = () => {
+  const navigate =
+    useNavigate();
+
+  // ===================================================
+  // CONTEXT
+  // ===================================================
+
+  const cartContext =
+    useCart();
+
+  const discountContext =
+    useDiscount();
 
   const cartItems =
     cartContext?.cartItems ||
@@ -531,21 +474,56 @@ export default function CheckoutPage() {
     cartContext?.clearCartItems ||
     (() => {});
 
-  const appliedDiscountFromContext =
+  // ===================================================
+  // DISCOUNT CONTEXT
+  // ===================================================
+
+  const appliedCoupon =
     discountContext?.appliedCoupon ||
     discountContext?.coupon ||
-    discountContext?.discount ||
     null;
 
-  const [form, setForm] = useState({
-    fullName: "",
-    mobile: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
+  const couponCode =
+    discountContext?.couponCode ||
+    appliedCoupon?.code ||
+    "";
+
+  const discountAmountFromContext =
+    safeNumber(
+      discountContext?.discountAmount ??
+        discountContext?.discount ??
+        appliedCoupon?.discountAmount ??
+        0,
+      0
+    );
+
+  const clearDiscount =
+    discountContext?.clearDiscount ||
+    discountContext?.removeCoupon ||
+    discountContext?.clearCoupon ||
+    (() => {});
+
+  // ===================================================
+  // FORM
+  // ===================================================
+
+  const [form, setForm] =
+    useState({
+      fullName: "",
+      mobile: "",
+      email: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+    });
+
+  // ===================================================
+  // PINCODE
+  // ===================================================
+
+  const [pincodeData, setPincodeData] =
+    useState(null);
 
   const [pincodeLoading, setPincodeLoading] =
     useState(false);
@@ -553,50 +531,15 @@ export default function CheckoutPage() {
   const [pincodeError, setPincodeError] =
     useState("");
 
-  const [pincodeData, setPincodeData] =
-    useState(null);
-
-  const [paymentMode, setPaymentMode] =
-    useState("cod");
-
-  const [paymentMethod, setPaymentMethod] =
-    useState("upi_id");
-
-  const [upiTransactionId, setUpiTransactionId] =
-    useState("");
-
-  const [upiPaymentConfirmed, setUpiPaymentConfirmed] =
-    useState(false);
-
-  const [upiCopied, setUpiCopied] =
-    useState(false);
-
-  const [placingOrder, setPlacingOrder] =
-    useState(false);
-
-  const [orderError, setOrderError] =
-    useState("");
-
-  const [appliedCoupon, setAppliedCoupon] =
-    useState(appliedDiscountFromContext);
-
-  const [couponCode, setCouponCode] =
-    useState("");
-
-  const [couponDiscount, setCouponDiscount] =
-    useState(0);
-
-  const [couponMessage, setCouponMessage] =
-    useState("");
-
-  const [couponError, setCouponError] =
-    useState("");
-
-  const [shippingCharge, setShippingCharge] =
-    useState(0);
+  // ===================================================
+  // SHIPPING
+  // ===================================================
 
   const [shippingData, setShippingData] =
     useState(null);
+
+  const [shippingCharge, setShippingCharge] =
+    useState(0);
 
   const [shippingLoading, setShippingLoading] =
     useState(false);
@@ -604,846 +547,535 @@ export default function CheckoutPage() {
   const [shippingError, setShippingError] =
     useState("");
 
-  const [errors, setErrors] = useState({});
+  // ===================================================
+  // PAYMENT
+  // ===================================================
 
-  useEffect(() => {
-    if (appliedDiscountFromContext) {
-      setAppliedCoupon(
-        appliedDiscountFromContext
-      );
-    }
-  }, [appliedDiscountFromContext]);
+  const [paymentMethod, setPaymentMethod] =
+    useState("cod");
 
-  const validConfiguredUpiId = useMemo(
-    () => isValidUPIVPA(VRAJ_UPI_ID),
-    []
-  );
+  const [upiMethod, setUpiMethod] =
+    useState("upi_id");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // ===================================================
+  // ORDER
+  // ===================================================
 
-    let nextValue = value;
+  const [placingOrder, setPlacingOrder] =
+    useState(false);
 
-    if (name === "mobile") {
-      nextValue = normalizeMobile(value);
-    }
+  const [error, setError] =
+    useState("");
 
-    if (name === "pincode") {
-      nextValue = String(value || "")
-        .replace(/\D/g, "")
-        .slice(0, 6);
+  const [successMessage, setSuccessMessage] =
+    useState("");
 
-      setPincodeError("");
+  // ===================================================
+  // ORDER ITEMS
+  // ===================================================
 
-      if (nextValue.length !== 6) {
-        setPincodeData(null);
-      }
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: nextValue,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
-
-    setOrderError("");
-  };
-
-  const handleUpiTransactionChange = (e) => {
-    const value = normalizeTransactionId(
-      e.target.value
-    );
-
-    setUpiTransactionId(value);
-    setUpiPaymentConfirmed(false);
-    setOrderError("");
-
-    setErrors((prev) => ({
-      ...prev,
-      transactionId: "",
-      payment: "",
-    }));
-  };
-
-  const isMobileUPIDevice = () => {
-    if (
-      typeof navigator === "undefined"
-    ) {
-      return false;
-    }
-
-    return /Android|iPhone|iPod/i.test(
-      navigator.userAgent
-    );
-  };
-
-  const openUPIApp = () => {
-    setOrderError("");
-
-    if (!validConfiguredUpiId) {
-      setOrderError(
-        "Configured Vraj Creation UPI ID is invalid. Please contact support."
-      );
-      return;
-    }
-
-    if (!isMobileUPIDevice()) {
-      setOrderError(
-        "Direct UPI App opening mobile par available hai. Desktop par QR code scan karke payment karein."
-      );
-      return;
-    }
-
-    if (!upiPaymentUrl) {
-      setOrderError(
-        "UPI payment link generate nahi ho saka. Please QR code se payment karein."
-      );
-      return;
-    }
-
-    window.location.href = upiPaymentUrl;
-  };
-
-  const copyUpiId = async () => {
-    if (!validConfiguredUpiId) {
-      setOrderError(
-        "Configured UPI ID invalid hai. Please contact support."
-      );
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(
-        VRAJ_UPI_ID
-      );
-
-      setUpiCopied(true);
-
-      setTimeout(() => {
-        setUpiCopied(false);
-      }, 2000);
-    } catch (error) {
-      console.error(
-        "UPI ID copy failed:",
-        error
-      );
-
-      setOrderError(
-        `UPI ID copy nahi ho saka. Please manually copy: ${VRAJ_UPI_ID}`
-      );
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const lookupPincode = async () => {
-      if (!isValidPincode(form.pincode)) {
-        return;
+  const orderItems =
+    useMemo(() => {
+      if (
+        !Array.isArray(
+          cartItems
+        )
+      ) {
+        return [];
       }
 
-      setPincodeLoading(true);
-      setPincodeError("");
+      return cartItems.map(
+        (item) => {
+          const quantity =
+            getQuantity(item);
 
-      try {
-        const response = await fetch(
-          `https://api.postalpincode.in/pincode/${form.pincode}`
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            "Pincode service unavailable"
-          );
-        }
-
-        const data = await response.json();
-
-        if (cancelled) {
-          return;
-        }
-
-        const result = data?.[0];
-
-        if (
-          result?.Status !== "Success" ||
-          !Array.isArray(result?.PostOffice) ||
-          !result.PostOffice.length
-        ) {
-          throw new Error(
-            "Invalid pincode"
-          );
-        }
-
-        const postOffice =
-          result.PostOffice[0];
-
-        const state = normalizeStateName(
-          postOffice?.State
-        );
-
-        const district =
-          postOffice?.District || "";
-
-        const division =
-          postOffice?.Division || "";
-
-        const region =
-          postOffice?.Region || "";
-
-        const name =
-          postOffice?.Name || "";
-
-        setPincodeData({
-          state,
-          district,
-          division,
-          region,
-          postOffice: name,
-        });
-
-        setForm((prev) => ({
-          ...prev,
-          city:
-            prev.city || district,
-          state:
-            prev.state || state,
-        }));
-
-        setErrors((prev) => ({
-          ...prev,
-          pincode: "",
-        }));
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        setPincodeData(null);
-
-        setPincodeError(
-          "Pincode verify nahi ho saka. Please check the pincode."
-        );
-      } finally {
-        if (!cancelled) {
-          setPincodeLoading(false);
-        }
-      }
-    };
-
-    const timer = setTimeout(
-      lookupPincode,
-      400
-    );
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [form.pincode]);
-
-  const productTotal = useMemo(() => {
-    return round2(
-      cartItems.reduce(
-        (sum, item) => {
-          const qty = getQuantity(item);
           const originalPrice =
-            getOriginalPrice(item);
+            getOriginalPrice(
+              item
+            );
 
-          return (
-            sum +
-            originalPrice * qty
-          );
-        },
-        0
-      )
-    );
-  }, [cartItems]);
-
-  const sellingSubtotal = useMemo(() => {
-    return round2(
-      cartItems.reduce(
-        (sum, item) => {
-          const qty = getQuantity(item);
           const sellingPrice =
-            getPrice(item);
+            getSellingPrice(
+              item
+            );
 
-          return (
-            sum +
-            sellingPrice * qty
-          );
-        },
-        0
-      )
-    );
-  }, [cartItems]);
+          const originalSubtotal =
+            round2(
+              originalPrice *
+                quantity
+            );
 
-  const productDiscount = useMemo(() => {
-    return round2(
-      Math.max(
-        0,
-        productTotal -
-          sellingSubtotal
-      )
-    );
-  }, [
-    productTotal,
-    sellingSubtotal,
-  ]);
+          const sellingSubtotalItem =
+            round2(
+              sellingPrice *
+                quantity
+            );
 
-  const totalItems = useMemo(() => {
-    return cartItems.reduce(
-      (sum, item) =>
-        sum + getQuantity(item),
-      0
-    );
-  }, [cartItems]);
+          const discountAmount =
+            round2(
+              Math.max(
+                0,
+                originalSubtotal -
+                  sellingSubtotalItem
+              )
+            );
 
-  const totalWeight = useMemo(() => {
-    return round2(
-      cartItems.reduce(
-        (sum, item) =>
-          sum +
-          getWeight(item) *
-            getQuantity(item),
-        0
-      )
-    );
-  }, [cartItems]);
+          return {
+            sku:
+              getProductSKU(
+                item
+              ),
 
-  const orderItems = useMemo(() => {
-    return cartItems.map((item) => {
-      const quantity = getQuantity(item);
+            name:
+              getProductName(
+                item
+              ),
 
-      const originalPrice =
-        getOriginalPrice(item);
+            category:
+              getCategory(
+                item
+              ),
 
-      const sellingPrice =
-        getPrice(item);
+            subcategory:
+              getSubcategory(
+                item
+              ),
 
-      const originalSubtotal = round2(
-        originalPrice * quantity
+            image:
+              getProductImage(
+                item
+              ),
+
+            description:
+              getDescription(
+                item
+              ),
+
+            size:
+              getSize(
+                item
+              ),
+
+            quantity,
+
+            originalPrice,
+
+            mrp:
+              originalPrice,
+
+            price:
+              sellingPrice,
+
+            sellingPrice,
+
+            discountPercent:
+              getDiscountPercent(
+                item
+              ),
+
+            discountAmount,
+
+            subtotal:
+              originalSubtotal,
+
+            sellingSubtotal:
+              sellingSubtotalItem,
+
+            taxablePrice:
+              sellingPrice,
+
+            weightGrams:
+              getWeight(
+                item
+              ),
+          };
+        }
       );
+    }, [cartItems]);
 
-      const sellingSubtotalItem =
-        round2(
-          sellingPrice * quantity
-        );
+  // ===================================================
+  // INVALID SKU
+  // ===================================================
 
-      const discountAmount = round2(
-        Math.max(
-          0,
-          originalSubtotal -
-            sellingSubtotalItem
+  const invalidSKUItems =
+    useMemo(() => {
+      return orderItems.filter(
+        (item) =>
+          !item.sku
+      );
+    }, [orderItems]);
+
+  // ===================================================
+  // PRODUCT TOTALS
+  // ===================================================
+
+  const productTotal =
+    useMemo(() => {
+      return round2(
+        orderItems.reduce(
+          (total, item) =>
+            total +
+            safeNumber(
+              item.subtotal,
+              0
+            ),
+          0
         )
       );
+    }, [orderItems]);
 
-      return {
-        sku: getProductSKU(item),
-        name: getProductName(item),
-        category: getCategory(item),
-        subcategory:
-          getSubcategory(item),
-        image: getProductImage(item),
-        description:
-          getDescription(item),
-        size: getSize(item),
-        quantity,
-        originalPrice,
-        mrp: originalPrice,
-        price: sellingPrice,
-        sellingPrice,
-        discountPercent:
-          getDiscountPercent(item),
-        discountAmount,
-        subtotal: originalSubtotal,
-        sellingSubtotal:
-          sellingSubtotalItem,
-        taxablePrice: sellingPrice,
-        weightGrams:
-          getWeight(item),
-      };
-    });
-  }, [cartItems]);
-
-  const invalidSKUItems = useMemo(() => {
-    return orderItems.filter(
-      (item) => !item.sku
-    );
-  }, [orderItems]);
-
-  const calculatedCouponDiscount =
+  const sellingSubtotal =
     useMemo(() => {
-      if (!appliedCoupon) {
-        return 0;
-      }
+      return round2(
+        orderItems.reduce(
+          (total, item) =>
+            total +
+            safeNumber(
+              item.sellingSubtotal,
+              0
+            ),
+          0
+        )
+      );
+    }, [orderItems]);
 
-      const discountPercent =
-        safeNumber(
-          appliedCoupon.discount ??
-            appliedCoupon.discountPercent ??
-            appliedCoupon.percentage ??
-            0
-        );
+  const productDiscount =
+    useMemo(() => {
+      return round2(
+        Math.max(
+          0,
+          productTotal -
+            sellingSubtotal
+        )
+      );
+    }, [
+      productTotal,
+      sellingSubtotal,
+    ]);
 
-      if (discountPercent <= 0) {
-        return 0;
-      }
+  // ===================================================
+  // TOTAL WEIGHT
+  // ===================================================
 
-      const minOrderAmount =
-        safeNumber(
-          appliedCoupon.minOrderAmount ??
-            0
-        );
+  const totalWeight =
+    useMemo(() => {
+      return orderItems.reduce(
+        (total, item) => {
+          return (
+            total +
+            getWeight(
+              item
+            ) *
+              getQuantity(
+                item
+              )
+          );
+        },
+        0
+      );
+    }, [orderItems]);
 
-      if (
-        sellingSubtotal <
-        minOrderAmount
-      ) {
-        return 0;
-      }
+  // ===================================================
+  // COUPON DISCOUNT
+  // ===================================================
 
-      const scope = String(
-        appliedCoupon.discountScope ||
-          appliedCoupon.scope ||
-          "all"
-      ).toLowerCase();
+  const couponDiscount =
+    useMemo(() => {
+      const direct =
+        discountAmountFromContext;
 
-      let eligibleAmount =
-        sellingSubtotal;
-
-      if (
-        scope !== "all" &&
-        scope !== "order" &&
-        scope !== "cart"
-      ) {
-        eligibleAmount = round2(
-          orderItems.reduce(
-            (sum, item) => {
-              const category =
-                String(
-                  item.category || ""
-                ).toLowerCase();
-
-              const subcategory =
-                String(
-                  item.subcategory ||
-                    ""
-                ).toLowerCase();
-
-              const target =
-                String(
-                  appliedCoupon.category ||
-                    appliedCoupon.subcategory ||
-                    appliedCoupon.discountScope ||
-                    ""
-                ).toLowerCase();
-
-              if (
-                target &&
-                (category === target ||
-                  subcategory === target)
-              ) {
-                return (
-                  sum +
-                  safeNumber(
-                    item.sellingSubtotal
-                  )
-                );
-              }
-
-              return sum;
-            },
-            0
+      if (direct > 0) {
+        return round2(
+          Math.min(
+            direct,
+            sellingSubtotal
           )
         );
       }
 
-      let discountAmount = round2(
-        (eligibleAmount *
-          discountPercent) /
-          100
-      );
+      if (
+        !appliedCoupon
+      ) {
+        return 0;
+      }
 
-      const maxDiscount =
+      const couponDiscountValue =
         safeNumber(
-          appliedCoupon.maxDiscount ??
-            appliedCoupon.maxDiscountAmount ??
-            0
+          appliedCoupon?.discount ??
+            appliedCoupon?.value ??
+            0,
+          0
         );
 
-      if (maxDiscount > 0) {
-        discountAmount = Math.min(
-          discountAmount,
-          maxDiscount
+      const wheelValue =
+        safeNumber(
+          appliedCoupon?.wheelValue ??
+            0,
+          0
+        );
+
+      const discount =
+        couponDiscountValue >
+        0
+          ? couponDiscountValue
+          : wheelValue;
+
+      if (
+        discount <= 0
+      ) {
+        return 0;
+      }
+
+      const discountType =
+        normalizeText(
+          appliedCoupon?.type ||
+            appliedCoupon?.discountType ||
+            appliedCoupon?.discountMode ||
+            ""
+        );
+
+      // -------------------------------------------------
+      // Percentage coupon
+      // -------------------------------------------------
+
+      if (
+        discountType.includes(
+          "percent"
+        ) ||
+        discountType.includes(
+          "%"
+        )
+      ) {
+        let amount =
+          round2(
+            sellingSubtotal *
+              (discount /
+                100)
+          );
+
+        const maxDiscount =
+          safeNumber(
+            appliedCoupon?.maxDiscount,
+            0
+          );
+
+        if (
+          maxDiscount > 0
+        ) {
+          amount =
+            Math.min(
+              amount,
+              maxDiscount
+            );
+        }
+
+        return round2(
+          Math.min(
+            amount,
+            sellingSubtotal
+          )
         );
       }
 
-      discountAmount = Math.min(
-        discountAmount,
-        sellingSubtotal
-      );
+      // -------------------------------------------------
+      // Direct amount
+      // -------------------------------------------------
 
       return round2(
-        Math.max(0, discountAmount)
+        Math.min(
+          discount,
+          sellingSubtotal
+        )
       );
     }, [
+      discountAmountFromContext,
       appliedCoupon,
       sellingSubtotal,
-      orderItems,
     ]);
 
-  useEffect(() => {
-    setCouponDiscount(
-      calculatedCouponDiscount
-    );
+  // ===================================================
+  // FINAL SELLING SUBTOTAL
+  // ===================================================
 
-    if (
-      appliedCoupon &&
-      calculatedCouponDiscount > 0
-    ) {
-      setCouponMessage(
-        `${
-          appliedCoupon.code ||
-          "Coupon"
-        } applied successfully.`
+  const finalSellingSubtotal =
+    useMemo(() => {
+      return round2(
+        Math.max(
+          0,
+          sellingSubtotal -
+            couponDiscount
+        )
       );
+    }, [
+      sellingSubtotal,
+      couponDiscount,
+    ]);
 
-      setCouponError("");
-    }
-  }, [
-    calculatedCouponDiscount,
-    appliedCoupon,
-  ]);
+  // ===================================================
+  // TOTAL DISCOUNT
+  // ===================================================
 
-  const netProductAmount = useMemo(() => {
-    return round2(
-      Math.max(
-        0,
-        sellingSubtotal -
+  const totalDiscount =
+    useMemo(() => {
+      return round2(
+        productDiscount +
           couponDiscount
-      )
-    );
-  }, [
-    sellingSubtotal,
-    couponDiscount,
-  ]);
+      );
+    }, [
+      productDiscount,
+      couponDiscount,
+    ]);
 
-  const totalDiscount = useMemo(() => {
-    return round2(
-      productDiscount +
-        couponDiscount
-    );
-  }, [
-    productDiscount,
-    couponDiscount,
-  ]);
-
-  const stateName = useMemo(
-    () =>
-      normalizeStateName(
-        form.state
-      ),
-    [form.state]
-  );
-
-  const stateCode = useMemo(
-    () =>
-      getStateCode(
-        stateName
-      ),
-    [stateName]
-  );
-
-  const isStateValid = useMemo(() => {
-    if (!stateName) {
-      return false;
-    }
-
-    return INDIAN_STATES.some(
-      (state) =>
-        state.toLowerCase() ===
-        stateName.toLowerCase()
-    );
-  }, [stateName]);
-
-  const finalShipping = useMemo(() => {
-    const charge =
-      shippingData?.charge ??
-      shippingData?.shippingCharge ??
-      shippingData?.amount ??
-      shippingCharge ??
-      0;
-
-    return round2(
-      Math.max(
-        0,
-        safeNumber(charge)
-      )
-    );
-  }, [
-    shippingData,
-    shippingCharge,
-  ]);
+  // ===================================================
+  // GST BASE
+  //
+  // Product after discount + shipping
+  // GST is added on top.
+  // ===================================================
 
   const totalAmountBeforeTax =
     useMemo(() => {
       return round2(
-        netProductAmount +
-          finalShipping
-      );
-    }, [
-      netProductAmount,
-      finalShipping,
-    ]);
-
-  const gstData = useMemo(() => {
-    return calculateGST(
-      totalAmountBeforeTax,
-      stateName
-    );
-  }, [
-    totalAmountBeforeTax,
-    stateName,
-  ]);
-
-  const finalTotal = useMemo(() => {
-    return round2(
-      totalAmountBeforeTax +
-        gstData.totalGST
-    );
-  }, [
-    totalAmountBeforeTax,
-    gstData.totalGST,
-  ]);
-
-  const isCheckoutReady = useMemo(() => {
-    return (
-      form.fullName.trim().length > 0 &&
-      isValidIndianMobile(form.mobile) &&
-      isValidEmail(form.email) &&
-      form.address.trim().length > 0 &&
-      form.city.trim().length > 0 &&
-      isStateValid &&
-      isValidPincode(form.pincode) &&
-      Boolean(pincodeData) &&
-      !pincodeLoading &&
-      !shippingLoading &&
-      Boolean(shippingData) &&
-      invalidSKUItems.length === 0
-    );
-  }, [
-    form.fullName,
-    form.mobile,
-    form.email,
-    form.address,
-    form.city,
-    form.pincode,
-    isStateValid,
-    pincodeData,
-    pincodeLoading,
-    shippingLoading,
-    shippingData,
-    invalidSKUItems,
-  ]);
-
-  const isUpiPaymentReady =
-    paymentMode !== "prepaid" ||
-    (validConfiguredUpiId &&
-      upiTransactionId.trim().length >= 6 &&
-      upiPaymentConfirmed);
-
-  const canPlaceOrder =
-    isCheckoutReady &&
-    isUpiPaymentReady;
-
-  const upiPaymentUrl = useMemo(() => {
-    if (!validConfiguredUpiId) {
-      return "";
-    }
-
-    const amount = finalTotal.toFixed(2);
-
-    const params = new URLSearchParams({
-      pa: VRAJ_UPI_ID,
-      pn: VRAJ_UPI_NAME,
-      am: amount,
-      cu: "INR",
-    });
-
-    return `upi://pay?${params.toString()}`;
-  }, [
-    finalTotal,
-    validConfiguredUpiId,
-  ]);
-
-  const calculateShipping = async () => {
-    if (
-      !isValidPincode(form.pincode)
-    ) {
-      return null;
-    }
-
-    if (invalidSKUItems.length > 0) {
-      setShippingError(
-        "Cart product SKU missing hai. Please cart ko refresh karke try karein."
-      );
-
-      return null;
-    }
-
-    setShippingLoading(true);
-    setShippingError("");
-
-    try {
-      const response = await fetch(
-        `${VRAJ_API}/shipping/calculate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            pincode: form.pincode,
-            sellingSubtotal,
-            totalWeightGrams:
-              totalWeight,
-            items: orderItems.map(
-              (item) => ({
-                sku: item.sku,
-                quantity:
-                  item.quantity,
-                weightGrams:
-                  item.weightGrams,
-                category:
-                  item.category,
-                subcategory:
-                  item.subcategory,
-              })
-            ),
-          }),
-        }
-      );
-
-      const data =
-        await response.json();
-
-      if (
-        !response.ok ||
-        data?.success === false
-      ) {
-        throw new Error(
-          data?.message ||
-            "Shipping calculation failed"
-        );
-      }
-
-      const result =
-        data?.data ||
-        data?.shipping ||
-        data;
-
-      const charge = round2(
         Math.max(
           0,
-          safeNumber(
-            result?.charge ??
-              result?.shippingCharge ??
-              result?.amount ??
-              0
-          )
+          finalSellingSubtotal +
+            shippingCharge
         )
       );
+    }, [
+      finalSellingSubtotal,
+      shippingCharge,
+    ]);
 
-      const normalizedShipping = {
-        ...result,
-        charge,
-        shippingCharge: charge,
-        amount: charge,
-        isFree:
-          Boolean(result?.isFree) ||
-          charge === 0,
-        weight: safeNumber(
-          result?.weight ??
-            totalWeight
-        ),
-        billableWeight:
-          safeNumber(
-            result?.billableWeight ??
-              result?.weight ??
-              totalWeight
-          ),
-        weightCharge:
-          safeNumber(
-            result?.weightCharge ??
-              0
-          ),
-        zoneCharge:
-          safeNumber(
-            result?.zoneCharge ??
-              0
-          ),
-      };
+  // ===================================================
+  // GST
+  // ===================================================
 
-      setShippingData(
-        normalizedShipping
+  const finalGST =
+    useMemo(() => {
+      return calculateGST(
+        totalAmountBeforeTax,
+        form.state ||
+          pincodeData?.state ||
+          BUSINESS_STATE
       );
+    }, [
+      totalAmountBeforeTax,
+      form.state,
+      pincodeData?.state,
+    ]);
 
-      setShippingCharge(charge);
+  // ===================================================
+  // FINAL ORDER AMOUNT
+  // ===================================================
 
-      return normalizedShipping;
-    } catch (error) {
-      console.error(
-        "Shipping calculation error:",
-        error
+  const finalOrderAmount =
+    useMemo(() => {
+      return round2(
+        totalAmountBeforeTax +
+          finalGST.totalGST
       );
+    }, [
+      totalAmountBeforeTax,
+      finalGST.totalGST,
+    ]);
 
-      setShippingData(null);
-      setShippingCharge(0);
-
-      setShippingError(
-        error?.message ||
-          "Shipping charge calculate nahi ho saka."
-      );
-
-      return null;
-    } finally {
-      setShippingLoading(false);
-    }
-  };
+  // ===================================================
+  // PINCODE LOOKUP
+  // ===================================================
 
   useEffect(() => {
+    const cleanPincode =
+      String(
+        form.pincode || ""
+      )
+        .trim()
+        .replace(/\s+/g, "");
+
     if (
-      !isValidPincode(form.pincode)
+      !isValidPincode(
+        cleanPincode
+      )
     ) {
-      setShippingData(null);
-      setShippingCharge(0);
-      setShippingError("");
+      setPincodeData(null);
+      setPincodeError("");
+      setPincodeLoading(false);
       return;
     }
 
-    if (invalidSKUItems.length > 0) {
-      setShippingData(null);
-      setShippingCharge(0);
-      return;
-    }
+    let cancelled =
+      false;
 
-    let cancelled = false;
+    const timer =
+      setTimeout(
+        async () => {
+          try {
+            setPincodeLoading(
+              true
+            );
 
-    const timer = setTimeout(
-      async () => {
-        if (cancelled) {
-          return;
-        }
+            setPincodeError("");
 
-        await calculateShipping();
-      },
-      700
-    );
+            const data =
+              await fetchPincodeDetails(
+                cleanPincode
+              );
+
+            if (
+              cancelled
+            ) {
+              return;
+            }
+
+            setPincodeData(
+              data
+            );
+
+            // ------------------------------------------------
+            // Auto-fill city and state
+            // ------------------------------------------------
+
+            setForm(
+              (previous) => ({
+                ...previous,
+
+                city:
+                  previous.city ||
+                  data?.District ||
+                  data?.district ||
+                  "",
+
+                state:
+                  data?.state ||
+                  previous.state ||
+                  "",
+              })
+            );
+          } catch (err) {
+            if (
+              cancelled
+            ) {
+              return;
+            }
+
+            setPincodeData(null);
+
+            setPincodeError(
+              err?.message ||
+                "Pincode details nahi mile."
+            );
+          } finally {
+            if (
+              !cancelled
+            ) {
+              setPincodeLoading(
+                false
+              );
+            }
+          }
+        },
+        350
+      );
 
     return () => {
       cancelled = true;
@@ -1451,770 +1083,1331 @@ export default function CheckoutPage() {
     };
   }, [
     form.pincode,
-    sellingSubtotal,
-    totalWeight,
-    invalidSKUItems.length,
   ]);
 
-  const validateForm = () => {
-    const nextErrors = {};
+  // ===================================================
+  // FORM HANDLER
+  // ===================================================
 
-    if (!form.fullName.trim()) {
-      nextErrors.fullName =
-        "Full name required.";
+  const handleChange = (
+    event
+  ) => {
+    const {
+      name,
+      value,
+    } = event.target;
+
+    let nextValue =
+      value;
+
+    if (
+      name ===
+      "mobile"
+    ) {
+      nextValue =
+        value
+          .replace(
+            /[^0-9]/g,
+            ""
+          )
+          .slice(0, 10);
     }
 
     if (
-      !isValidIndianMobile(
-        form.mobile
-      )
+      name ===
+      "pincode"
     ) {
-      nextErrors.mobile =
-        "Valid 10-digit Indian mobile number required.";
+      nextValue =
+        value
+          .replace(
+            /[^0-9]/g,
+            ""
+          )
+          .slice(0, 6);
+
+      if (
+        nextValue.length <
+        6
+      ) {
+        setPincodeData(
+          null
+        );
+        setPincodeError(
+          ""
+        );
+      }
     }
 
-    if (
-      !isValidEmail(form.email)
-    ) {
-      nextErrors.email =
-        "Valid email address required.";
-    }
+    setForm(
+      (previous) => ({
+        ...previous,
+        [name]:
+          nextValue,
+      })
+    );
 
-    if (!form.address.trim()) {
-      nextErrors.address =
-        "Address required.";
-    }
+    setError("");
+  };
 
-    if (!form.city.trim()) {
-      nextErrors.city =
-        "City required.";
-    }
+  // ===================================================
+  // CALCULATE SHIPPING
+  // ===================================================
 
-    if (!isStateValid) {
-      nextErrors.state =
-        "Please select a valid state.";
-    }
+  const calculateShipping =
+    async () => {
+      // ------------------------------------------------
+      // VALID PINCODE
+      // ------------------------------------------------
 
+      if (
+        !isValidPincode(
+          form.pincode
+        )
+      ) {
+        return null;
+      }
+
+      // ------------------------------------------------
+      // CART ITEMS VALIDATION
+      // ------------------------------------------------
+
+      if (
+        !Array.isArray(
+          orderItems
+        ) ||
+        orderItems.length ===
+          0
+      ) {
+        setShippingData(
+          null
+        );
+
+        setShippingCharge(
+          0
+        );
+
+        setShippingError(
+          "Cart mein koi product nahi hai."
+        );
+
+        return null;
+      }
+
+      // ------------------------------------------------
+      // SKU VALIDATION
+      // ------------------------------------------------
+
+      if (
+        invalidSKUItems.length >
+        0
+      ) {
+        setShippingData(
+          null
+        );
+
+        setShippingCharge(
+          0
+        );
+
+        setShippingError(
+          "Cart product SKU missing hai. Please cart ko refresh karke try karein."
+        );
+
+        return null;
+      }
+
+      // ------------------------------------------------
+      // LOADING
+      // ------------------------------------------------
+
+      setShippingLoading(
+        true
+      );
+
+      setShippingError("");
+
+      try {
+        // ==============================================
+        // SHIPPING ITEMS
+        // ==============================================
+
+        const shippingItems =
+          orderItems.map(
+            (item) => ({
+              sku:
+                item?.sku ||
+                "",
+
+              name:
+                item?.name ||
+                "",
+
+              quantity:
+                Math.max(
+                  1,
+                  Number(
+                    item?.quantity ??
+                      1
+                  )
+                ),
+
+              weightGrams:
+                Number(
+                  item?.weightGrams ??
+                    0
+                ),
+
+              category:
+                item?.category ||
+                "",
+
+              subcategory:
+                item?.subcategory ||
+                "",
+            })
+          );
+
+        // ==============================================
+        // SHIPPING REQUEST
+        // ==============================================
+
+        const shippingPayload =
+          {
+            pincode:
+              String(
+                form.pincode ||
+                  ""
+              ).trim(),
+
+            // IMPORTANT:
+            // Backend supports subtotal.
+            subtotal:
+              Number(
+                sellingSubtotal ||
+                  0
+              ),
+
+            // Compatibility
+            sellingSubtotal:
+              Number(
+                sellingSubtotal ||
+                  0
+              ),
+
+            totalWeightGrams:
+              Number(
+                totalWeight ||
+                  0
+              ),
+
+            items:
+              shippingItems,
+          };
+
+        // ==============================================
+        // DEBUG
+        // ==============================================
+
+        console.log(
+          "===================================="
+        );
+
+        console.log(
+          "SHIPPING REQUEST"
+        );
+
+        console.log(
+          shippingPayload
+        );
+
+        console.log(
+          "Shipping items:",
+          shippingItems
+        );
+
+        console.log(
+          "===================================="
+        );
+
+        // ==============================================
+        // API
+        // ==============================================
+
+        const response =
+          await fetch(
+            `${VRAJ_API}/shipping/calculate`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify(
+                  shippingPayload
+                ),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        console.log(
+          "SHIPPING RESPONSE:",
+          data
+        );
+
+        // ==============================================
+        // ERROR
+        // ==============================================
+
+        if (
+          !response.ok ||
+          data?.success ===
+            false
+        ) {
+          throw new Error(
+            data?.message ||
+              "Shipping calculation failed."
+          );
+        }
+
+        // ==============================================
+        // SHIPPING RESULT
+        // ==============================================
+
+        const result =
+          data?.shipping ||
+          data?.data ||
+          data;
+
+        // ==============================================
+        // CHARGE
+        // ==============================================
+
+        const charge =
+          round2(
+            Math.max(
+              0,
+              safeNumber(
+                result?.charge ??
+                  result?.shippingCharge ??
+                  result?.amount ??
+                  0
+              )
+            )
+          );
+
+        // ==============================================
+        // NORMALIZED SHIPPING
+        // ==============================================
+
+        const normalizedShipping =
+          {
+            ...result,
+
+            charge,
+
+            shippingCharge:
+              charge,
+
+            amount:
+              charge,
+
+            isFree:
+              Boolean(
+                result?.isFree
+              ) ||
+              charge === 0,
+
+            weight:
+              safeNumber(
+                result?.weight ??
+                  result?.weightGrams ??
+                  totalWeight
+              ),
+
+            weightGrams:
+              safeNumber(
+                result?.weightGrams ??
+                  result?.weight ??
+                  totalWeight
+              ),
+
+            actualWeightGrams:
+              safeNumber(
+                result?.actualWeightGrams ??
+                  0
+              ),
+
+            volumetricWeightGrams:
+              safeNumber(
+                result?.volumetricWeightGrams ??
+                  0
+              ),
+
+            billableWeightGrams:
+              safeNumber(
+                result?.billableWeightGrams ??
+                  result?.weightGrams ??
+                  result?.weight ??
+                  totalWeight
+              ),
+
+            billableWeight:
+              safeNumber(
+                result?.billableWeightGrams ??
+                  result?.weightGrams ??
+                  result?.weight ??
+                  totalWeight
+              ),
+
+            totalVolumeCm3:
+              safeNumber(
+                result?.totalVolumeCm3 ??
+                  0
+              ),
+
+            weightCharge:
+              safeNumber(
+                result?.weightCharge ??
+                  0
+              ),
+
+            sizeCharge:
+              safeNumber(
+                result?.sizeCharge ??
+                  0
+              ),
+
+            zoneCharge:
+              safeNumber(
+                result?.zoneCharge ??
+                  0
+              ),
+
+            shippingMode:
+              result?.shippingMode ??
+              null,
+
+            zone:
+              result?.zone ??
+              null,
+
+            isApproximate:
+              Boolean(
+                result?.isApproximate
+              ),
+          };
+
+        // ==============================================
+        // SAVE
+        // ==============================================
+
+        setShippingData(
+          normalizedShipping
+        );
+
+        setShippingCharge(
+          charge
+        );
+
+        setShippingError("");
+
+        return normalizedShipping;
+      } catch (error) {
+        console.error(
+          "Shipping calculation error:",
+          error
+        );
+
+        setShippingData(
+          null
+        );
+
+        setShippingCharge(
+          0
+        );
+
+        setShippingError(
+          error?.message ||
+            "Shipping charge calculate nahi ho saka."
+        );
+
+        return null;
+      } finally {
+        setShippingLoading(
+          false
+        );
+      }
+    };
+
+  // ===================================================
+  // AUTO SHIPPING
+  // ===================================================
+
+  useEffect(() => {
     if (
       !isValidPincode(
         form.pincode
       )
     ) {
-      nextErrors.pincode =
-        "Valid 6-digit pincode required.";
-    }
-
-    if (
-      isValidPincode(form.pincode) &&
-      !pincodeData
-    ) {
-      nextErrors.pincode =
-        "Please wait for pincode verification.";
-    }
-
-    if (
-      invalidSKUItems.length > 0
-    ) {
-      nextErrors.items =
-        "One or more cart products do not have a valid SKU.";
-    }
-
-    if (
-      paymentMode === "prepaid" &&
-      !validConfiguredUpiId
-    ) {
-      nextErrors.payment =
-        "Configured Vraj Creation UPI ID is invalid.";
-    }
-
-    if (
-      paymentMode === "prepaid" &&
-      upiTransactionId.trim()
-        .length < 6
-    ) {
-      nextErrors.transactionId =
-        "Please enter a valid UPI Transaction ID / UTR.";
-    }
-
-    if (
-      paymentMode === "prepaid" &&
-      !upiPaymentConfirmed
-    ) {
-      nextErrors.payment =
-        "Please confirm that you have completed the UPI payment.";
-    }
-
-    setErrors(nextErrors);
-
-    return (
-      Object.keys(nextErrors)
-        .length === 0
-    );
-  };
-
-  const validateUpiPayment = () => {
-    if (paymentMode !== "prepaid") {
-      return true;
-    }
-
-    if (!validConfiguredUpiId) {
-      setOrderError(
-        "Configured Vraj Creation UPI ID invalid hai. Please contact support."
+      setShippingData(
+        null
       );
 
-      setErrors((prev) => ({
-        ...prev,
-        payment:
-          "Invalid UPI ID.",
-      }));
-
-      return false;
-    }
-
-    const transactionId =
-      normalizeTransactionId(
-        upiTransactionId
+      setShippingCharge(
+        0
       );
 
-    if (!transactionId) {
-      setOrderError(
-        "Please enter your UPI Transaction ID / UTR after completing the payment."
-      );
+      setShippingError("");
 
-      setErrors((prev) => ({
-        ...prev,
-        transactionId:
-          "UPI Transaction ID / UTR required.",
-      }));
-
-      return false;
-    }
-
-    if (
-      transactionId.length < 6
-    ) {
-      setOrderError(
-        "Please enter a valid UPI Transaction ID / UTR."
-      );
-
-      setErrors((prev) => ({
-        ...prev,
-        transactionId:
-          "Transaction ID / UTR must contain at least 6 characters.",
-      }));
-
-      return false;
-    }
-
-    if (!upiPaymentConfirmed) {
-      setOrderError(
-        "Please confirm that you have completed the UPI payment."
-      );
-
-      setErrors((prev) => ({
-        ...prev,
-        payment:
-          "Payment confirmation required.",
-      }));
-
-      return false;
-    }
-
-    return true;
-  };
-
-  const placeOrder = async () => {
-    if (placingOrder) {
-      return;
-    }
-
-    setOrderError("");
-
-    if (!cartItems.length) {
-      setOrderError(
-        "Your cart is empty."
-      );
       return;
     }
 
     if (
-      invalidSKUItems.length > 0
+      !Array.isArray(
+        orderItems
+      ) ||
+      orderItems.length ===
+        0
     ) {
-      setOrderError(
-        "Cart mein ek ya zyada products ka SKU missing hai. Please cart refresh karke try karein."
+      setShippingData(
+        null
       );
+
+      setShippingCharge(
+        0
+      );
+
+      setShippingError(
+        "Cart mein koi product nahi hai."
+      );
+
       return;
     }
 
-    if (!validateForm()) {
-      setOrderError(
-        "Please fill all required details correctly."
+    if (
+      invalidSKUItems.length >
+        0
+    ) {
+      setShippingData(
+        null
       );
+
+      setShippingCharge(
+        0
+      );
+
+      setShippingError(
+        "Cart product SKU missing hai. Please cart ko refresh karke try karein."
+      );
+
       return;
     }
 
-    if (!validateUpiPayment()) {
-      return;
-    }
-
-    if (shippingLoading) {
-      setOrderError(
-        "Please wait while shipping charge is calculated."
-      );
-      return;
-    }
-
-    let currentShipping =
-      shippingData;
-
-    if (!currentShipping) {
-      currentShipping =
-        await calculateShipping();
-    }
-
-    if (!currentShipping) {
-      setOrderError(
-        "Shipping charge calculate nahi ho saka. Please try again."
-      );
-      return;
-    }
-
-    const finalProductTotal =
-      round2(productTotal);
-
-    const finalProductDiscount =
-      round2(productDiscount);
-
-    const finalSellingSubtotal =
-      round2(sellingSubtotal);
-
-    const finalCouponDiscount =
-      round2(
-        Math.max(
-          0,
-          Math.min(
-            couponDiscount,
-            finalSellingSubtotal
-          )
-        )
-      );
-
-    const finalTotalDiscount =
-      round2(
-        finalProductDiscount +
-          finalCouponDiscount
-      );
-
-    const finalNetProductAmount =
-      round2(
-        Math.max(
-          0,
-          finalSellingSubtotal -
-            finalCouponDiscount
-        )
-      );
-
-    const finalShippingCharge =
-      round2(
-        Math.max(
-          0,
-          safeNumber(
-            currentShipping?.charge ??
-              currentShipping?.shippingCharge ??
-              currentShipping?.amount ??
-              0
-          )
-        )
-      );
-
-    const finalTotalAmountBeforeTax =
-      round2(
-        finalNetProductAmount +
-          finalShippingCharge
-      );
-
-    const finalGST = calculateGST(
-      finalTotalAmountBeforeTax,
-      stateName
-    );
-
-    const finalOrderAmount =
-      round2(
-        finalTotalAmountBeforeTax +
-          finalGST.totalGST
-      );
-
-    if (finalOrderAmount <= 0) {
-      setOrderError(
-        "Invalid order amount."
-      );
-      return;
-    }
-
-    setPlacingOrder(true);
-
-    try {
-      const transactionId =
-        paymentMode === "prepaid"
-          ? normalizeTransactionId(
-              upiTransactionId
-            )
-          : "";
-
-      const payment = {
-        method:
-          paymentMode === "prepaid"
-            ? "upi"
-            : "cod",
-
-        type:
-          paymentMode === "prepaid"
-            ? paymentMethod
-            : null,
-
-        upiId:
-          paymentMode === "prepaid"
-            ? VRAJ_UPI_ID
-            : "",
-
-        transactionId,
-
-        amount:
-          finalOrderAmount,
-
-        status: "pending",
-
-        submittedAt:
-          paymentMode === "prepaid"
-            ? new Date().toISOString()
-            : null,
-
-        verifiedAt: null,
-
-        verifiedBy: "",
-
-        rejectedAt: null,
-
-        rejectionReason: "",
-
-        screenshot: "",
-      };
-
-      const customer = {
-        fullName:
-          form.fullName.trim(),
-
-        mobile:
-          normalizeMobile(
-            form.mobile
-          ),
-
-        email:
-          form.email
-            .trim()
-            .toLowerCase(),
-
-        address:
-          form.address.trim(),
-
-        city:
-          form.city.trim(),
-
-        state: stateName,
-
-        stateCode,
-
-        pincode:
-          form.pincode,
-
-        district:
-          pincodeData?.district ||
-          "",
-
-        postOffice:
-          pincodeData?.postOffice ||
-          "",
-      };
-
-      const finalOrderItems =
-        orderItems.map((item) => ({
-          sku: normalizeSKU(
-            item.sku
-          ),
-
-          name: item.name,
-
-          category:
-            item.category,
-
-          subcategory:
-            item.subcategory,
-
-          image: item.image,
-
-          description:
-            item.description,
-
-          size: item.size,
-
-          quantity:
-            item.quantity,
-
-          originalPrice:
-            item.originalPrice,
-
-          mrp: item.mrp,
-
-          price: item.price,
-
-          sellingPrice:
-            item.sellingPrice,
-
-          discountPercent:
-            item.discountPercent,
-
-          discountAmount:
-            item.discountAmount,
-
-          subtotal:
-            item.subtotal,
-
-          sellingSubtotal:
-            item.sellingSubtotal,
-
-          taxablePrice:
-            item.taxablePrice,
-
-          weightGrams:
-            item.weightGrams,
-        }));
-
-      const orderPayload = {
-        customer,
-
-        items: finalOrderItems,
-
-        subtotal:
-          finalProductTotal,
-
-        sellingSubtotal:
-          finalSellingSubtotal,
-
-        productDiscount:
-          finalProductDiscount,
-
-        couponDiscount:
-          finalCouponDiscount,
-
-        discount:
-          finalTotalDiscount,
-
-        discountPercentage:
-          finalProductTotal > 0
-            ? round2(
-                (finalTotalDiscount /
-                  finalProductTotal) *
-                  100
-              )
-            : 0,
-
-        couponCode:
-          appliedCoupon?.code ||
-          couponCode ||
-          null,
-
-        coupon: appliedCoupon
-          ? {
-              code:
-                appliedCoupon.code ||
-                null,
-
-              name:
-                appliedCoupon.name ||
-                null,
-
-              discount:
-                safeNumber(
-                  appliedCoupon.discount ??
-                    appliedCoupon.discountPercent ??
-                    0
-                ),
-
-              minOrderAmount:
-                safeNumber(
-                  appliedCoupon.minOrderAmount ??
-                    0
-                ),
-
-              maxDiscount:
-                safeNumber(
-                  appliedCoupon.maxDiscount ??
-                    0
-                ),
-
-              source:
-                appliedCoupon.source ||
-                "coupon",
-            }
-          : null,
-
-        gst: {
-          rate: GST_RATE,
-
-          pricingMode:
-            "gst_exclusive",
-
-          totalAmountBeforeTax:
-            finalGST.totalAmountBeforeTax,
-
-          taxableAmount:
-            finalGST.taxableAmount,
-
-          taxableValue:
-            finalGST.taxableValue,
-
-          totalGST:
-            finalGST.totalGST,
-
-          cgst:
-            finalGST.cgst,
-
-          cgstRate:
-            finalGST.cgstRate,
-
-          sgst:
-            finalGST.sgst,
-
-          sgstRate:
-            finalGST.sgstRate,
-
-          igst:
-            finalGST.igst,
-
-          igstRate:
-            finalGST.igstRate,
-
-          isInterState:
-            finalGST.isInterState,
-
-          sellerState:
-            finalGST.sellerState,
-
-          sellerStateCode:
-            finalGST.sellerStateCode,
-
-          customerState:
-            finalGST.customerState,
-
-          customerStateCode:
-            finalGST.customerStateCode,
-
-          baseAmount:
-            finalTotalAmountBeforeTax,
-
-          grossAmount:
-            finalOrderAmount,
-
-          amountWithGST:
-            finalOrderAmount,
-        },
-
-        shipping: {
-          ...currentShipping,
-
-          charge:
-            finalShippingCharge,
-
-          shippingCharge:
-            finalShippingCharge,
-
-          amount:
-            finalShippingCharge,
-
-          isFree:
-            finalShippingCharge ===
-            0,
-        },
-
-        pricing: {
-          subtotal:
-            finalProductTotal,
-
-          sellingSubtotal:
-            finalSellingSubtotal,
-
-          productDiscount:
-            finalProductDiscount,
-
-          eligibleSubtotal:
-            finalSellingSubtotal,
-
-          couponDiscount:
-            finalCouponDiscount,
-
-          discount:
-            finalTotalDiscount,
-
-          discountPercent:
-            finalProductTotal > 0
-              ? round2(
-                  (finalTotalDiscount /
-                    finalProductTotal) *
-                    100
-                )
-              : 0,
-
-          couponCode:
-            appliedCoupon?.code ||
-            couponCode ||
-            null,
-
-          shipping:
-            finalShippingCharge,
-
-          shippingCharge:
-            finalShippingCharge,
-
-          totalAmountBeforeTax:
-            finalTotalAmountBeforeTax,
-
-          taxableValue:
-            finalTotalAmountBeforeTax,
-
-          gstRate:
-            GST_RATE,
-
-          totalGST:
-            finalGST.totalGST,
-
-          cgst:
-            finalGST.cgst,
-
-          sgst:
-            finalGST.sgst,
-
-          igst:
-            finalGST.igst,
-
-          cgstRate:
-            finalGST.cgstRate,
-
-          sgstRate:
-            finalGST.sgstRate,
-
-          igstRate:
-            finalGST.igstRate,
-
-          finalTotal:
-            finalOrderAmount,
-
-          finalAmount:
-            finalOrderAmount,
-        },
-
-        finalAmount:
-          finalOrderAmount,
-
-        payment,
-      };
-
-      const response =
-        await fetch(
-          `${VRAJ_API}/orders`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify(
-              orderPayload
-            ),
+    let cancelled =
+      false;
+
+    const timer =
+      setTimeout(
+        async () => {
+          if (
+            cancelled
+          ) {
+            return;
           }
+
+          await calculateShipping();
+        },
+        700
+      );
+
+    return () => {
+      cancelled = true;
+
+      clearTimeout(
+        timer
+      );
+    };
+  }, [
+    form.pincode,
+    sellingSubtotal,
+    totalWeight,
+    orderItems.length,
+    invalidSKUItems.length,
+  ]);
+
+  // ===================================================
+  // PAYMENT UPI LINK
+  // ===================================================
+
+  const upiUrl =
+    useMemo(() => {
+      const amount =
+        round2(
+          finalOrderAmount
         );
 
-      let responseData = null;
+      return (
+        `upi://pay?` +
+        `pa=${encodeURIComponent(
+          VRAJ_UPI_ID
+        )}` +
+        `&pn=${encodeURIComponent(
+          VRAJ_UPI_NAME
+        )}` +
+        `&am=${encodeURIComponent(
+          amount.toFixed(2)
+        )}` +
+        `&cu=INR`
+      );
+    }, [
+      finalOrderAmount,
+    ]);
 
-      try {
-        responseData =
-          await response.json();
-      } catch {
-        responseData = null;
+  // ===================================================
+  // FORM VALIDATION
+  // ===================================================
+
+  const validateForm =
+    () => {
+      if (
+        !form.fullName.trim()
+      ) {
+        return "Full name required hai.";
       }
 
       if (
-        !response.ok ||
-        responseData?.success === false
+        !/^[0-9]{10}$/.test(
+          form.mobile.trim()
+        )
       ) {
-        throw new Error(
-          responseData?.message ||
-            responseData?.error ||
-            "Order place nahi ho saka."
-        );
+        return "Please valid 10-digit mobile number enter karein.";
       }
 
-      const createdOrder =
-        responseData?.data ||
-        responseData?.order ||
-        responseData;
+      if (
+        !form.email.trim()
+      ) {
+        return "Email required hai.";
+      }
 
-      const savedOrder = {
-        ...orderPayload,
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          form.email.trim()
+        )
+      ) {
+        return "Please valid email enter karein.";
+      }
 
-        ...(createdOrder || {}),
+      if (
+        !form.address.trim()
+      ) {
+        return "Complete address required hai.";
+      }
 
-        customer,
+      if (
+        !form.city.trim()
+      ) {
+        return "City required hai.";
+      }
 
-        items: finalOrderItems,
+      if (
+        !form.state.trim()
+      ) {
+        return "State required hai.";
+      }
 
-        shipping: {
-          ...orderPayload.shipping,
+      if (
+        !isValidPincode(
+          form.pincode
+        )
+      ) {
+        return "Please valid 6-digit pincode enter karein.";
+      }
 
-          ...(createdOrder?.shipping ||
-            {}),
-        },
+      if (
+        !Array.isArray(
+          orderItems
+        ) ||
+        orderItems.length ===
+          0
+      ) {
+        return "Cart mein koi product nahi hai.";
+      }
 
-        gst: {
-          ...orderPayload.gst,
+      if (
+        invalidSKUItems.length >
+        0
+      ) {
+        return "Cart mein product SKU missing hai. Please cart refresh karein.";
+      }
 
-          ...(createdOrder?.gst || {}),
-        },
+      if (
+        !shippingData
+      ) {
+        return "Shipping charge calculate ho raha hai. Please thoda wait karein.";
+      }
 
-        pricing: {
-          ...orderPayload.pricing,
+      if (
+        paymentMethod ===
+        "upi" &&
+        !upiMethod
+      ) {
+        return "Please UPI payment method select karein.";
+      }
 
-          ...(createdOrder?.pricing ||
-            {}),
-        },
+      return "";
+    };
 
-        payment: {
-          ...payment,
+  // ===================================================
+  // PLACE ORDER
+  // ===================================================
 
-          ...(createdOrder?.payment ||
-            {}),
-        },
+  const placeOrder =
+    async () => {
+      setError("");
+      setSuccessMessage("");
 
-        finalAmount: safeNumber(
-          createdOrder?.finalAmount,
-          finalOrderAmount
-        ),
-      };
+      // ------------------------------------------------
+      // VALIDATE
+      // ------------------------------------------------
+
+      const validationError =
+        validateForm();
+
+      if (
+        validationError
+      ) {
+        setError(
+          validationError
+        );
+        return;
+      }
+
+      setPlacingOrder(
+        true
+      );
 
       try {
+        // ==============================================
+        // ENSURE SHIPPING
+        // ==============================================
+
+        let currentShipping =
+          shippingData;
+
+        if (
+          !currentShipping
+        ) {
+          currentShipping =
+            await calculateShipping();
+        }
+
+        if (
+          !currentShipping
+        ) {
+          throw new Error(
+            "Shipping charge calculate nahi ho saka."
+          );
+        }
+
+        // ==============================================
+        // FINAL SHIPPING
+        // ==============================================
+
+        const finalShippingCharge =
+          round2(
+            Math.max(
+              0,
+              safeNumber(
+                currentShipping?.charge ??
+                  currentShipping?.shippingCharge ??
+                  0
+              )
+            )
+          );
+
+        // ==============================================
+        // FINAL TAXABLE VALUE
+        // ==============================================
+
+        const finalTotalAmountBeforeTax =
+          round2(
+            Math.max(
+              0,
+              finalSellingSubtotal +
+                finalShippingCharge
+            )
+          );
+
+        // ==============================================
+        // FINAL GST
+        // ==============================================
+
+        const finalGST =
+          calculateGST(
+            finalTotalAmountBeforeTax,
+            form.state ||
+              pincodeData?.state ||
+              BUSINESS_STATE
+          );
+
+        // ==============================================
+        // FINAL TOTAL
+        // ==============================================
+
+        const finalAmount =
+          round2(
+            finalTotalAmountBeforeTax +
+              finalGST.totalGST
+          );
+
+        // ==============================================
+        // PAYMENT
+        // ==============================================
+
+        const payment =
+          paymentMethod ===
+          "cod"
+            ? {
+                method:
+                  "cod",
+
+                type:
+                  "cod",
+
+                status:
+                  "pending",
+
+                amount:
+                  finalAmount,
+              }
+            : {
+                method:
+                  "upi",
+
+                type:
+                  upiMethod,
+
+                paymentType:
+                  upiMethod,
+
+                status:
+                  "pending",
+
+                amount:
+                  finalAmount,
+
+                upiId:
+                  VRAJ_UPI_ID,
+
+                upiName:
+                  VRAJ_UPI_NAME,
+
+                upiUrl:
+                  upiUrl,
+              };
+
+        // ==============================================
+        // ORDER PAYLOAD
+        // ==============================================
+
+        const orderPayload =
+          {
+            customer: {
+              fullName:
+                form.fullName.trim(),
+
+              name:
+                form.fullName.trim(),
+
+              mobile:
+                form.mobile.trim(),
+
+              phone:
+                form.mobile.trim(),
+
+              email:
+                form.email.trim(),
+
+              address:
+                form.address.trim(),
+
+              city:
+                form.city.trim(),
+
+              state:
+                form.state.trim(),
+
+              pincode:
+                form.pincode.trim(),
+
+              country:
+                "India",
+
+              postOffice:
+                pincodeData?.postOffice ||
+                "",
+            },
+
+            items:
+              orderItems.map(
+                (item) => ({
+                  sku:
+                    item.sku,
+
+                  name:
+                    item.name,
+
+                  category:
+                    item.category,
+
+                  subcategory:
+                    item.subcategory,
+
+                  image:
+                    item.image,
+
+                  description:
+                    item.description,
+
+                  size:
+                    item.size,
+
+                  quantity:
+                    item.quantity,
+
+                  originalPrice:
+                    item.originalPrice,
+
+                  mrp:
+                    item.mrp,
+
+                  price:
+                    item.price,
+
+                  sellingPrice:
+                    item.sellingPrice,
+
+                  discountPercent:
+                    item.discountPercent,
+
+                  discountAmount:
+                    item.discountAmount,
+
+                  subtotal:
+                    item.subtotal,
+
+                  sellingSubtotal:
+                    item.sellingSubtotal,
+
+                  taxablePrice:
+                    item.taxablePrice,
+
+                  weightGrams:
+                    item.weightGrams,
+                })
+              ),
+
+            // ==========================================
+            // COUPON
+            // ==========================================
+
+            couponCode:
+              appliedCoupon?.code ||
+              couponCode ||
+              null,
+
+            coupon:
+              appliedCoupon
+                ? {
+                    code:
+                      appliedCoupon?.code ||
+                      couponCode ||
+                      null,
+
+                    name:
+                      appliedCoupon?.name ||
+                      "",
+
+                    discount:
+                      couponDiscount,
+
+                    description:
+                      appliedCoupon?.description ||
+                      "",
+                  }
+                : null,
+
+            // ==========================================
+            // SHIPPING
+            // ==========================================
+
+            shipping: {
+              ...currentShipping,
+
+              charge:
+                finalShippingCharge,
+
+              shippingCharge:
+                finalShippingCharge,
+
+              amount:
+                finalShippingCharge,
+
+              isFree:
+                finalShippingCharge ===
+                0,
+
+              pincode:
+                form.pincode.trim(),
+
+              city:
+                form.city.trim(),
+
+              state:
+                form.state.trim(),
+
+              billableWeightGrams:
+                safeNumber(
+                  currentShipping?.billableWeightGrams ??
+                    currentShipping?.weightGrams ??
+                    currentShipping?.weight ??
+                    totalWeight
+                ),
+
+              weightGrams:
+                safeNumber(
+                  currentShipping?.weightGrams ??
+                    totalWeight
+                ),
+
+              actualWeightGrams:
+                safeNumber(
+                  currentShipping?.actualWeightGrams ??
+                    totalWeight
+                ),
+
+              zone:
+                currentShipping?.zone ??
+                null,
+
+              shippingMode:
+                currentShipping?.shippingMode ??
+                null,
+            },
+
+            // ==========================================
+            // PRICING
+            // ==========================================
+
+            pricing: {
+              subtotal:
+                productTotal,
+
+              productTotal:
+                productTotal,
+
+              sellingSubtotal:
+                sellingSubtotal,
+
+              productDiscount:
+                productDiscount,
+
+              eligibleSubtotal:
+                sellingSubtotal,
+
+              couponDiscount:
+                couponDiscount,
+
+              discount:
+                totalDiscount,
+
+              discountPercent:
+                productTotal >
+                0
+                  ? round2(
+                      (totalDiscount /
+                        productTotal) *
+                        100
+                    )
+                  : 0,
+
+              couponCode:
+                appliedCoupon?.code ||
+                couponCode ||
+                null,
+
+              shipping:
+                finalShippingCharge,
+
+              shippingCharge:
+                finalShippingCharge,
+
+              // ----------------------------------------
+              // GST
+              // ----------------------------------------
+
+              totalAmountBeforeTax:
+                finalTotalAmountBeforeTax,
+
+              taxableValue:
+                finalTotalAmountBeforeTax,
+
+              taxableAmount:
+                finalTotalAmountBeforeTax,
+
+              gstRate:
+                GST_RATE,
+
+              totalGST:
+                finalGST.totalGST,
+
+              cgst:
+                finalGST.cgst,
+
+              sgst:
+                finalGST.sgst,
+
+              igst:
+                finalGST.igst,
+
+              cgstRate:
+                finalGST.cgstRate,
+
+              sgstRate:
+                finalGST.sgstRate,
+
+              igstRate:
+                finalGST.igstRate,
+
+              isInterState:
+                finalGST.isInterState,
+
+              sellerState:
+                BUSINESS_STATE,
+
+              customerState:
+                form.state,
+
+              finalTotal:
+                finalAmount,
+
+              finalAmount:
+                finalAmount,
+            },
+
+            // ==========================================
+            // GST OBJECT
+            // ==========================================
+
+            gst: {
+              ...finalGST,
+
+              rate:
+                GST_RATE,
+
+              pricingMode:
+                "gst_exclusive",
+
+              amountWithGST:
+                finalAmount,
+
+              finalAmount:
+                finalAmount,
+            },
+
+            // ==========================================
+            // TOTALS
+            // ==========================================
+
+            subtotal:
+              productTotal,
+
+            sellingSubtotal:
+              sellingSubtotal,
+
+            discount:
+              totalDiscount,
+
+            couponDiscount:
+              couponDiscount,
+
+            shippingCharge:
+              finalShippingCharge,
+
+            totalAmountBeforeTax:
+              finalTotalAmountBeforeTax,
+
+            taxableValue:
+              finalTotalAmountBeforeTax,
+
+            totalGST:
+              finalGST.totalGST,
+
+            cgst:
+              finalGST.cgst,
+
+            sgst:
+              finalGST.sgst,
+
+            igst:
+              finalGST.igst,
+
+            finalAmount:
+              finalAmount,
+
+            // ==========================================
+            // PAYMENT
+            // ==========================================
+
+            payment,
+          };
+
+        // ==============================================
+        // DEBUG ORDER
+        // ==============================================
+
+        console.log(
+          "===================================="
+        );
+
+        console.log(
+          "PLACE ORDER PAYLOAD"
+        );
+
+        console.log(
+          orderPayload
+        );
+
+        console.log(
+          "FINAL AMOUNT:",
+          finalAmount
+        );
+
+        console.log(
+          "===================================="
+        );
+
+        // ==============================================
+        // CREATE ORDER
+        // ==============================================
+
+        const response =
+          await fetch(
+            `${VRAJ_API}/orders`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify(
+                  orderPayload
+                ),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        console.log(
+          "ORDER RESPONSE:",
+          data
+        );
+
+        // ==============================================
+        // ERROR
+        // ==============================================
+
+        if (
+          !response.ok ||
+          data?.success ===
+            false
+        ) {
+          throw new Error(
+            data?.message ||
+              "Order place nahi ho saka."
+          );
+        }
+
+        // ==============================================
+        // ORDER RESULT
+        // ==============================================
+
+        const order =
+          data?.order ||
+          data?.data ||
+          data;
+
+        const orderNumber =
+          order?.orderNumber ||
+          order?.orderId ||
+          order?.id ||
+          data?.orderNumber ||
+          `VRJ-${Date.now()}`;
+
+        // ==============================================
+        // SAVE ORDER
+        // ==============================================
+
+        const orderForSuccess =
+          {
+            ...orderPayload,
+
+            ...order,
+
+            orderNumber,
+
+            finalAmount:
+              order?.finalAmount ??
+              finalAmount,
+
+            pricing: {
+              ...orderPayload.pricing,
+
+              ...(order?.pricing ||
+                {}),
+            },
+
+            shipping: {
+              ...orderPayload.shipping,
+
+              ...(order?.shipping ||
+                {}),
+            },
+
+            gst: {
+              ...orderPayload.gst,
+
+              ...(order?.gst ||
+                {}),
+            },
+          };
+
+        // ==============================================
+        // SESSION STORAGE
+        // ==============================================
+
         sessionStorage.setItem(
           "vraj_order",
-          JSON.stringify(savedOrder)
+          JSON.stringify(
+            orderForSuccess
+          )
         );
-      } catch (storageError) {
-        console.warn(
-          "sessionStorage save failed:",
-          storageError
-        );
-      }
 
-      try {
+        // ==============================================
+        // LOCAL STORAGE
+        // ==============================================
+
         const oldOrders =
           JSON.parse(
             localStorage.getItem(
@@ -2222,124 +2415,127 @@ export default function CheckoutPage() {
             ) || "[]"
           );
 
+        const orders =
+          Array.isArray(
+            oldOrders
+          )
+            ? oldOrders
+            : [];
+
+        orders.push(
+          orderForSuccess
+        );
+
         localStorage.setItem(
           "vraj_orders",
-          JSON.stringify([
-            savedOrder,
-            ...oldOrders,
-          ])
+          JSON.stringify(
+            orders
+          )
         );
-      } catch (storageError) {
-        console.warn(
-          "localStorage order save failed:",
-          storageError
+
+        localStorage.setItem(
+          "vraj_last_order_number",
+          orderNumber
         );
-      }
 
-      const orderNumber =
-        savedOrder?.orderNumber ||
-        savedOrder?.orderId ||
-        savedOrder?._id ||
-        savedOrder?.id ||
-        "";
-
-      if (orderNumber) {
-        try {
-          sessionStorage.setItem(
-            "vraj_last_order_number",
-            String(orderNumber)
-          );
-        } catch {}
-      }
-
-      try {
-        clearCart();
-      } catch (clearError) {
-        console.warn(
-          "Cart clear failed:",
-          clearError
-        );
+        // ==============================================
+        // CLEAR CART
+        // ==============================================
 
         try {
-          localStorage.removeItem(
-            "vraj_creation_cart"
+          clearCart();
+        } catch (
+          clearCartError
+        ) {
+          console.warn(
+            "Cart clear warning:",
+            clearCartError
           );
-        } catch {}
-      }
-
-      try {
-        if (
-          typeof discountContext?.clearDiscount ===
-          "function"
-        ) {
-          discountContext.clearDiscount();
         }
 
-        if (
-          typeof discountContext?.removeCoupon ===
-          "function"
+        // ==============================================
+        // CLEAR COUPON
+        // ==============================================
+
+        try {
+          clearDiscount();
+        } catch (
+          discountClearError
         ) {
-          discountContext.removeCoupon();
+          console.warn(
+            "Discount clear warning:",
+            discountClearError
+          );
         }
 
-        if (
-          typeof discountContext?.clearCoupon ===
-          "function"
-        ) {
-          discountContext.clearCoupon();
-        }
-      } catch (discountError) {
-        console.warn(
-          "Discount clear failed:",
-          discountError
+        // ==============================================
+        // SUCCESS
+        // ==============================================
+
+        setSuccessMessage(
+          "Order successfully place ho gaya."
+        );
+
+        // ==============================================
+        // ORDER SUCCESS PAGE
+        // ==============================================
+
+        navigate(
+          "/order-success",
+          {
+            replace: true,
+          }
+        );
+      } catch (err) {
+        console.error(
+          "Place order error:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "Order place nahi ho saka. Please try again."
+        );
+      } finally {
+        setPlacingOrder(
+          false
         );
       }
+    };
 
-      navigate(
-        "/order-success",
-        {
-          replace: true,
-          state: {
-            order: savedOrder,
-          },
-        }
-      );
-    } catch (error) {
-      console.error(
-        "Place order error:",
-        error
-      );
+  // ===================================================
+  // EMPTY CART
+  // ===================================================
 
-      setOrderError(
-        error?.message ||
-          "Order place nahi ho saka. Please try again."
-      );
-    } finally {
-      setPlacingOrder(false);
-    }
-  };
-
-  if (!cartItems.length) {
+  if (
+    !Array.isArray(
+      cartItems
+    ) ||
+    cartItems.length ===
+      0
+  ) {
     return (
-      <div className="min-h-screen bg-[#f8f2e8] flex items-center justify-center px-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-8 text-center shadow-lg border border-[#eadbc6]">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f4eadb] text-[#8f3424]">
-            <FiShoppingBag size={30} />
+      <div className="min-h-screen bg-[#fffaf2] px-4 py-12 text-[#3d2b1f]">
+        <div className="mx-auto max-w-2xl rounded-3xl border border-[#eadbc8] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fff3e3] text-[#8f3424]">
+            <FiShoppingBag
+              size={30}
+            />
           </div>
 
-          <h1 className="text-2xl font-bold text-[#4b2e1f]">
+          <h1 className="text-2xl font-bold">
             Your cart is empty
           </h1>
 
-          <p className="mt-2 text-gray-600">
-            Add some beautiful Vraj
-            Creation products before
-            checkout.
+          <p className="mt-2 text-sm text-[#7b6759]">
+            Checkout karne ke liye
+            pehle product cart mein
+            add karein.
           </p>
 
           <Link
             to="/shop"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#8f3424] px-6 py-3 font-semibold text-white transition hover:bg-[#76291d]"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#8f3424] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#76291d]"
           >
             Continue Shopping
             <FiChevronRight />
@@ -2349,1076 +2545,765 @@ export default function CheckoutPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8f2e8]">
-      <header className="border-b border-[#eadbc6] bg-[#fffaf2]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            to="/cart"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#6b4633] transition hover:text-[#8f3424]"
-          >
-            <FiArrowLeft />
-            Back to Cart
-          </Link>
+  // ===================================================
+  // MAIN UI
+  // ===================================================
 
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#6b4633]">
-            <FiLock />
-            Secure Checkout
+  return (
+    <div className="min-h-screen bg-[#fffaf2] text-[#3d2b1f]">
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
+      <div className="border-b border-[#eadbc8] bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              to="/cart"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5848] transition hover:text-[#8f3424]"
+            >
+              <FiArrowLeft />
+              Back to Cart
+            </Link>
+
+            <div className="hidden items-center gap-2 text-xs font-medium text-[#7b6759] sm:flex">
+              <FiLock />
+              Secure Checkout
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* =================================================
+          MAIN
+      ================================================= */}
+
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
+        {/* =================================================
+            TITLE
+        ================================================= */}
+
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#8f3424]">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b42]">
             Vraj Creation
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-[#4b2e1f] sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-bold text-[#3d2b1f] sm:text-4xl">
             Checkout
           </h1>
 
-          <p className="mt-2 text-gray-600">
-            Complete your details and
-            place your order securely.
+          <p className="mt-2 max-w-2xl text-sm text-[#7b6759]">
+            Apni delivery details aur
+            payment method enter karke
+            order complete karein.
           </p>
         </div>
 
-        {orderError && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-red-700">
+        {/* =================================================
+            ERROR
+        ================================================= */}
+
+        {error && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
             <FiX className="mt-0.5 shrink-0" />
-
-            <div>
-              <p className="font-semibold">
-                Order Error
-              </p>
-
-              <p className="mt-1 text-sm">
-                {orderError}
-              </p>
-            </div>
+            <span>
+              {error}
+            </span>
           </div>
         )}
 
-        {errors.items && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-            {errors.items}
+        {/* =================================================
+            SUCCESS
+        ================================================= */}
+
+        {successMessage && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-700">
+            <FiCheck className="mt-0.5 shrink-0" />
+            <span>
+              {successMessage}
+            </span>
           </div>
         )}
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
+        <div className="grid gap-7 lg:grid-cols-[1fr_390px]">
+          {/* =================================================
+              LEFT
+          ================================================= */}
+
           <div className="space-y-6">
-            <section className="rounded-2xl border border-[#eadbc6] bg-white p-5 shadow-sm sm:p-6">
-              <div className="mb-7 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f4eadb] text-[#8f3424]">
-                  <FiUser size={21} />
+            {/* =================================================
+                CUSTOMER DETAILS
+            ================================================= */}
+
+            <section className="rounded-3xl border border-[#eadbc8] bg-white p-5 shadow-sm sm:p-7">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff3e3] text-[#8f3424]">
+                  <FiUser />
                 </div>
 
                 <div>
-                  <h2 className="text-xl font-bold text-[#4b2e1f]">
-                    Checkout Form
+                  <h2 className="text-lg font-bold">
+                    Customer Details
                   </h2>
 
-                  <p className="text-sm text-gray-500">
-                    Enter your complete
-                    delivery and payment
-                    details
+                  <p className="text-xs text-[#8b7565]">
+                    Delivery ke liye basic
+                    information
                   </p>
                 </div>
               </div>
 
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <FiUser className="text-[#8f3424]" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Full Name */}
 
-                  <h3 className="font-bold text-[#4b2e1f]">
-                    Customer Details
-                  </h3>
-                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    Full Name
+                  </label>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                      Full Name *
-                    </label>
+                  <div className="relative">
+                    <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9c8574]" />
 
-                    <div className="relative">
-                      <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={form.fullName}
-                        onChange={handleChange}
-                        placeholder="Enter your full name"
-                        className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                          errors.fullName
-                            ? "border-red-400"
-                            : "border-gray-200"
-                        }`}
-                      />
-                    </div>
-
-                    {errors.fullName && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.fullName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                      Mobile Number *
-                    </label>
-
-                    <div className="relative">
-                      <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-
-                      <input
-                        type="tel"
-                        name="mobile"
-                        inputMode="numeric"
-                        maxLength={10}
-                        value={form.mobile}
-                        onChange={handleChange}
-                        placeholder="10-digit mobile number"
-                        className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                          errors.mobile
-                            ? "border-red-400"
-                            : "border-gray-200"
-                        }`}
-                      />
-                    </div>
-
-                    {errors.mobile && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.mobile}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                      Email Address *
-                    </label>
-
-                    <div className="relative">
-                      <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-
-                      <input
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        placeholder="you@example.com"
-                        className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                          errors.email
-                            ? "border-red-400"
-                            : "border-gray-200"
-                        }`}
-                      />
-                    </div>
-
-                    {errors.email && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.email}
-                      </p>
-                    )}
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={
+                        form.fullName
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      placeholder="Enter full name"
+                      className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div className="my-8 border-t border-[#eadbc6]" />
+                {/* Mobile */}
 
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <FiMapPin className="text-[#8f3424]" />
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    Mobile Number
+                  </label>
 
-                  <h3 className="font-bold text-[#4b2e1f]">
-                    Delivery Details
-                  </h3>
+                  <div className="relative">
+                    <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9c8574]" />
+
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={
+                        form.mobile
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="10-digit mobile"
+                      className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                      Complete Address *
-                    </label>
+                {/* Email */}
 
-                    <textarea
-                      name="address"
-                      rows={3}
-                      value={form.address}
-                      onChange={handleChange}
-                      placeholder="House / Flat / Street / Area"
-                      className={`w-full resize-none rounded-xl border bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                        errors.address
-                          ? "border-red-400"
-                          : "border-gray-200"
-                      }`}
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    Email
+                  </label>
+
+                  <div className="relative">
+                    <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9c8574]" />
+
+                    <input
+                      type="email"
+                      name="email"
+                      value={
+                        form.email
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      placeholder="you@example.com"
+                      className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    Complete Address
+                  </label>
+
+                  <textarea
+                    name="address"
+                    value={
+                      form.address
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    rows={3}
+                    placeholder="House/Flat, Street, Area"
+                    className="w-full resize-none rounded-xl border border-[#dfcdb8] bg-[#fffdf9] px-3 py-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                  />
+                </div>
+
+                {/* Pincode */}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    Pincode
+                  </label>
+
+                  <div className="relative">
+                    <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9c8574]" />
+
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={
+                        form.pincode
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="6-digit pincode"
+                      className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] py-3 pl-10 pr-10 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
                     />
 
-                    {errors.address && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.address}
-                      </p>
+                    {pincodeLoading && (
+                      <FiLoader className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#8f3424]" />
                     )}
                   </div>
 
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                        Pincode *
-                      </label>
+                  {pincodeData && (
+                    <p className="mt-2 text-xs font-medium text-green-700">
+                      {pincodeData.postOffice}
+                      {pincodeData.district
+                        ? `, ${pincodeData.district}`
+                        : ""}
+                      {pincodeData.state
+                        ? `, ${pincodeData.state}`
+                        : ""}
+                    </p>
+                  )}
 
-                      <div className="relative">
-                        <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  {pincodeError && (
+                    <p className="mt-2 text-xs text-red-600">
+                      {pincodeError}
+                    </p>
+                  )}
+                </div>
 
-                        <input
-                          type="text"
-                          name="pincode"
-                          inputMode="numeric"
-                          maxLength={6}
-                          value={form.pincode}
-                          onChange={handleChange}
-                          placeholder="6-digit pincode"
-                          className={`w-full rounded-xl border bg-white py-3 pl-10 pr-10 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                            errors.pincode
-                              ? "border-red-400"
-                              : "border-gray-200"
-                          }`}
-                        />
+                {/* City */}
 
-                        {pincodeLoading && (
-                          <FiLoader className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#8f3424]" />
-                        )}
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    City
+                  </label>
 
-                        {!pincodeLoading &&
-                          pincodeData && (
-                            <FiCheck className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600" />
-                          )}
-                      </div>
+                  <input
+                    type="text"
+                    name="city"
+                    value={
+                      form.city
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="City"
+                    className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] px-3 py-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                  />
+                </div>
 
-                      {pincodeError && (
-                        <p className="mt-1 text-xs text-red-600">
-                          {pincodeError}
-                        </p>
-                      )}
+                {/* State */}
 
-                      {errors.pincode && (
-                        <p className="mt-1 text-xs text-red-600">
-                          {errors.pincode}
-                        </p>
-                      )}
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-sm font-semibold">
+                    State
+                  </label>
 
-                      {pincodeData && (
-                        <p className="mt-2 text-xs text-green-700">
-                          {pincodeData.postOffice}
+                  <input
+                    type="text"
+                    name="state"
+                    value={
+                      form.state
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="State"
+                    className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] px-3 py-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
+                  />
 
-                          {pincodeData.district
-                            ? `, ${pincodeData.district}`
-                            : ""}
+                  <p className="mt-1.5 text-[11px] text-[#8b7565]">
+                    Pincode enter karne par
+                    city/state automatically
+                    fill ho jayega.
+                  </p>
+                </div>
+              </div>
+            </section>
 
-                          {pincodeData.state
-                            ? `, ${pincodeData.state}`
-                            : ""}
-                        </p>
-                      )}
-                    </div>
+            {/* =================================================
+                SHIPPING
+            ================================================= */}
 
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                        City *
-                      </label>
+            <section className="rounded-3xl border border-[#eadbc8] bg-white p-5 shadow-sm sm:p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff3e3] text-[#8f3424]">
+                  <FiTruck />
+                </div>
 
-                      <input
-                        type="text"
-                        name="city"
-                        value={form.city}
-                        onChange={handleChange}
-                        placeholder="City / District"
-                        className={`w-full rounded-xl border bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] ${
-                          errors.city
-                            ? "border-red-400"
-                            : "border-gray-200"
-                        }`}
-                      />
+                <div>
+                  <h2 className="text-lg font-bold">
+                    Shipping
+                  </h2>
 
-                      {errors.city && (
-                        <p className="mt-1 text-xs text-red-600">
-                          {errors.city}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                      State *
-                    </label>
-
-                    <select
-                      name="state"
-                      value={form.state}
-                      onChange={handleChange}
-                      className={`w-full rounded-xl border bg-white px-4 py-3 text-black outline-none transition focus:border-[#8f3424] ${
-                        errors.state
-                          ? "border-red-400"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <option value="">
-                        Select State
-                      </option>
-
-                      {INDIAN_STATES.map(
-                        (state) => (
-                          <option
-                            key={state}
-                            value={state}
-                          >
-                            {state}
-                          </option>
-                        )
-                      )}
-                    </select>
-
-                    {errors.state && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.state}
-                      </p>
-                    )}
-
-                    {stateCode && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        GST State Code:{" "}
-                        <span className="font-semibold text-[#4b2e1f]">
-                          {stateCode}
-                        </span>
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs text-[#8b7565]">
+                    Delivery charge pincode
+                    aur cart ke according
+                    calculate hoga.
+                  </p>
                 </div>
               </div>
 
-              <div className="my-8 border-t border-[#eadbc6]" />
-
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <FiTruck className="text-[#8f3424]" />
-
-                  <h3 className="font-bold text-[#4b2e1f]">
-                    Shipping
-                  </h3>
+              {!isValidPincode(
+                form.pincode
+              ) ? (
+                <div className="rounded-2xl border border-dashed border-[#dfcdb8] bg-[#fffaf2] p-4 text-sm text-[#7b6759]">
+                  Shipping charge dekhne ke
+                  liye valid pincode enter
+                  karein.
                 </div>
+              ) : shippingLoading ? (
+                <div className="flex items-center gap-3 rounded-2xl border border-[#eadbc8] bg-[#fffaf2] p-4 text-sm text-[#7b6759]">
+                  <FiLoader className="animate-spin text-[#8f3424]" />
+                  Shipping charge calculate
+                  ho raha hai...
+                </div>
+              ) : shippingError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {shippingError}
+                </div>
+              ) : shippingData ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-2xl border border-[#eadbc8] bg-[#fffaf2] p-4">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Delivery Charge
+                      </p>
 
-                {shippingLoading ? (
-                  <div className="flex items-center gap-3 rounded-xl bg-[#fffaf2] p-4 text-sm text-[#6b4633]">
-                    <FiLoader className="animate-spin" />
-                    Calculating shipping...
-                  </div>
-                ) : shippingError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    {shippingError}
-                  </div>
-                ) : shippingData ? (
-                  <div className="rounded-xl border border-[#eadbc6] bg-[#fffaf2] p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-[#4b2e1f]">
-                          Standard Delivery
+                      <p className="mt-1 text-xs text-[#8b7565]">
+                        {shippingData?.message ||
+                          "Shipping calculated"}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      {shippingData.isFree ? (
+                        <p className="text-lg font-bold text-green-700">
+                          FREE
                         </p>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                          {shippingData.billableWeight
-                            ? `Billable weight: ${shippingData.billableWeight}g`
-                            : "Delivery charges calculated"}
+                      ) : (
+                        <p className="text-lg font-bold text-[#8f3424]">
+                          {formatPrice(
+                            shippingCharge
+                          )}
                         </p>
-                      </div>
+                      )}
+                    </div>
+                  </div>
 
-                      <div className="text-right">
-                        {finalShipping === 0 ? (
-                          <p className="font-bold text-green-600">
-                            FREE
+                  {shippingData?.shippingMode ===
+                    "wall-fixed" && (
+                    <div className="rounded-xl bg-[#fff3e3] px-4 py-3 text-xs font-medium text-[#7b4c2f]">
+                      Wall Décor shipping:
+                      ₹150 fixed below ₹999.
+                    </div>
+                  )}
+
+                  {shippingData?.isFree && (
+                    <div className="rounded-xl bg-green-50 px-4 py-3 text-xs font-medium text-green-700">
+                      ₹999 ya usse zyada
+                      subtotal par free
+                      shipping applied.
+                    </div>
+                  )}
+
+                  {!shippingData?.isFree &&
+                    shippingData?.shippingMode ===
+                      "normal" && (
+                      <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                        <div className="rounded-xl bg-[#fffaf2] p-3">
+                          <p className="text-[#8b7565]">
+                            Weight
                           </p>
-                        ) : (
-                          <p className="font-bold text-[#4b2e1f]">
-                            {formatCurrency(
-                              finalShipping
+                          <p className="mt-1 font-bold">
+                            {formatPrice(
+                              shippingData?.weightCharge ||
+                                0
                             )}
                           </p>
-                        )}
-                      </div>
-                    </div>
+                        </div>
 
-                    {sellingSubtotal >=
-                      FREE_SHIPPING_THRESHOLD && (
-                      <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-green-700">
-                        <FiCheck />
-                        Eligible for free
-                        shipping
+                        <div className="rounded-xl bg-[#fffaf2] p-3">
+                          <p className="text-[#8b7565]">
+                            Size
+                          </p>
+                          <p className="mt-1 font-bold">
+                            {formatPrice(
+                              shippingData?.sizeCharge ||
+                                0
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl bg-[#fffaf2] p-3">
+                          <p className="text-[#8b7565]">
+                            Zone
+                          </p>
+                          <p className="mt-1 font-bold">
+                            {formatPrice(
+                              shippingData?.zoneCharge ||
+                                0
+                            )}
+                          </p>
+                        </div>
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
-                    Enter your 6-digit
-                    pincode to calculate
-                    shipping.
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
+            </section>
 
-              <div className="my-8 border-t border-[#eadbc6]" />
+            {/* =================================================
+                PAYMENT
+            ================================================= */}
 
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <FiCreditCard className="text-[#8f3424]" />
+            <section className="rounded-3xl border border-[#eadbc8] bg-white p-5 shadow-sm sm:p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff3e3] text-[#8f3424]">
+                  <FiCreditCard />
+                </div>
 
-                  <h3 className="font-bold text-[#4b2e1f]">
+                <div>
+                  <h2 className="text-lg font-bold">
                     Payment Method
-                  </h3>
+                  </h2>
+
+                  <p className="text-xs text-[#8b7565]">
+                    Available payment options
+                  </p>
                 </div>
-
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentMode("cod");
-                      setOrderError("");
-
-                      setErrors((prev) => ({
-                        ...prev,
-                        payment: "",
-                        transactionId: "",
-                      }));
-                    }}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
-                      paymentMode === "cod"
-                        ? "border-[#8f3424] bg-[#fffaf2]"
-                        : "border-gray-200 hover:border-[#d39a38]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          paymentMode ===
-                          "cod"
-                            ? "border-[#8f3424]"
-                            : "border-gray-400"
-                        }`}
-                      >
-                        {paymentMode ===
-                          "cod" && (
-                          <div className="h-2.5 w-2.5 rounded-full bg-[#8f3424]" />
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="font-semibold text-[#4b2e1f]">
-                          Cash on Delivery
-                        </p>
-
-                        <p className="text-xs text-gray-500">
-                          Pay when your
-                          order arrives
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentMode(
-                        "prepaid"
-                      );
-                      setOrderError("");
-                    }}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
-                      paymentMode ===
-                      "prepaid"
-                        ? "border-[#8f3424] bg-[#fffaf2]"
-                        : "border-gray-200 hover:border-[#d39a38]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          paymentMode ===
-                          "prepaid"
-                            ? "border-[#8f3424]"
-                            : "border-gray-400"
-                        }`}
-                      >
-                        {paymentMode ===
-                          "prepaid" && (
-                          <div className="h-2.5 w-2.5 rounded-full bg-[#8f3424]" />
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="font-semibold text-[#4b2e1f]">
-                          Prepaid UPI
-                        </p>
-
-                        <p className="text-xs text-gray-500">
-                          Pay using UPI and
-                          submit UTR
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
-                {paymentMode ===
-                  "prepaid" && (
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod(
-                          "upi_id"
-                        );
-                        setOrderError("");
-                      }}
-                      className={`rounded-xl border p-4 text-left ${
-                        paymentMethod ===
-                        "upi_id"
-                          ? "border-[#8f3424] bg-[#fffaf2]"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <p className="font-semibold text-[#4b2e1f]">
-                        UPI ID
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-500">
-                        Pay using UPI ID
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod(
-                          "qr"
-                        );
-                        setOrderError("");
-                      }}
-                      className={`rounded-xl border p-4 text-left ${
-                        paymentMethod === "qr"
-                          ? "border-[#8f3424] bg-[#fffaf2]"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <p className="font-semibold text-[#4b2e1f]">
-                        Dynamic QR
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-500">
-                        QR includes final
-                        amount
-                      </p>
-                    </button>
-                  </div>
-                )}
-
-                {paymentMode ===
-                  "prepaid" &&
-                  paymentMethod ===
-                    "upi_id" && (
-                    <div className="mt-5 rounded-xl bg-[#fffaf2] p-4">
-                      <p className="text-sm font-semibold text-[#4b2e1f]">
-                        UPI Payment
-                      </p>
-
-                      <p className="mt-1 text-sm text-gray-600">
-                        Pay{" "}
-                        <span className="font-bold text-[#8f3424]">
-                          {isCheckoutReady
-                            ? formatCurrency(
-                                finalTotal
-                              )
-                            : "—"}
-                        </span>{" "}
-                        to:
-                      </p>
-
-                      {!validConfiguredUpiId && (
-                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                          Configured UPI ID is
-                          invalid. Please
-                          contact Vraj Creation
-                          support.
-                        </div>
-                      )}
-
-                      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <p
-                          className={`flex-1 rounded-lg border bg-white px-3 py-3 font-mono text-sm font-semibold ${
-                            validConfiguredUpiId
-                              ? "border-[#eadbc6] text-black"
-                              : "border-red-300 text-red-600"
-                          }`}
-                        >
-                          {VRAJ_UPI_ID}
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={
-                            copyUpiId
-                          }
-                          disabled={
-                            !validConfiguredUpiId
-                          }
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#8f3424] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#76291d] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {upiCopied ? (
-                            <>
-                              <FiCheck />
-                              Copied
-                            </>
-                          ) : (
-                            "Copy UPI ID"
-                          )}
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={
-                          openUPIApp
-                        }
-                        disabled={
-                          !validConfiguredUpiId ||
-                          !upiPaymentUrl
-                        }
-                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b2e1f] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#321e15] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <FiExternalLink />
-                        Open UPI App
-                      </button>
-
-                      <p className="mt-2 text-center text-[11px] text-gray-500">
-                        Mobile par UPI app open
-                        hoga. Desktop par QR
-                        code use karein.
-                      </p>
-
-                      <div className="mt-4 rounded-xl border border-[#eadbc6] bg-white p-3">
-                        <div className="flex items-start gap-3">
-                          <FiShield className="mt-0.5 shrink-0 text-[#8f3424]" />
-
-                          <div>
-                            <p className="text-sm font-semibold text-[#4b2e1f]">
-                              How to Pay
-                            </p>
-
-                            <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-5 text-gray-600">
-                              <li>
-                                Copy the UPI
-                                ID or tap
-                                Open UPI App
-                                on mobile.
-                              </li>
-
-                              <li>
-                                Open Google
-                                Pay, PhonePe,
-                                Paytm or any
-                                UPI app.
-                              </li>
-
-                              <li>
-                                Send the exact
-                                order amount.
-                              </li>
-
-                              <li>
-                                After payment,
-                                enter the UTR /
-                                Transaction ID
-                                below.
-                              </li>
-                            </ol>
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="mt-3 text-xs leading-5 text-gray-500">
-                        UPI payment complete
-                        karne ke baad neeche
-                        apna UTR / Transaction ID
-                        enter karein.
-                      </p>
-                    </div>
-                  )}
-
-                {paymentMode ===
-                  "prepaid" &&
-                  paymentMethod ===
-                    "qr" && (
-                    <div className="mt-5 flex flex-col items-center rounded-xl bg-[#fffaf2] p-5">
-                      <p className="mb-1 font-semibold text-[#4b2e1f]">
-                        Scan & Pay
-                      </p>
-
-                      <p className="mb-4 text-sm text-gray-600">
-                        Amount:{" "}
-                        <span className="font-bold text-[#8f3424]">
-                          {isCheckoutReady
-                            ? formatCurrency(
-                                finalTotal
-                              )
-                            : "—"}
-                        </span>
-                      </p>
-
-                      {isCheckoutReady &&
-                      validConfiguredUpiId ? (
-                        <div className="rounded-2xl bg-white p-4 shadow-sm">
-                          <QRCodeCanvas
-                            value={
-                              upiPaymentUrl
-                            }
-                            size={210}
-                            includeMargin
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-[242px] w-[242px] items-center justify-center rounded-2xl bg-white p-4 text-center text-xs text-gray-500 shadow-sm">
-                          Complete your
-                          checkout details
-                          to generate the
-                          payment QR.
-                        </div>
-                      )}
-
-                      <p className="mt-3 text-center text-xs text-gray-500">
-                        {VRAJ_UPI_NAME}
-                        <br />
-                        <span className="font-semibold text-black">
-                          {VRAJ_UPI_ID}
-                        </span>
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={
-                          openUPIApp
-                        }
-                        disabled={
-                          !validConfiguredUpiId ||
-                          !upiPaymentUrl
-                        }
-                        className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-[#4b2e1f] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#321e15] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <FiExternalLink />
-                        Open UPI App
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={
-                          copyUpiId
-                        }
-                        className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-[#8f3424] bg-white px-5 py-2.5 text-sm font-semibold text-[#8f3424] transition hover:bg-[#fffaf2]"
-                      >
-                        {upiCopied ? (
-                          <>
-                            <FiCheck />
-                            UPI ID Copied
-                          </>
-                        ) : (
-                          "Copy UPI ID"
-                        )}
-                      </button>
-
-                      <p className="mt-3 text-center text-xs leading-5 text-gray-500">
-                        Mobile par Open UPI App
-                        use karein. Desktop par
-                        phone se QR scan karein,
-                        payment complete karein,
-                        phir neeche UTR /
-                        Transaction ID enter
-                        karein.
-                      </p>
-                    </div>
-                  )}
-
-                {paymentMode ===
-                  "prepaid" && (
-                  <div className="mt-5 rounded-xl border border-[#eadbc6] bg-white p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f4eadb] text-[#8f3424]">
-                        <FiCreditCard />
-                      </div>
-
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#4b2e1f]">
-                          Payment Verification
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-gray-500">
-                          Payment karne ke baad
-                          apna UTR / Transaction
-                          ID enter karein. Payment
-                          ko Vraj Creation admin
-                          manually verify karega.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <label className="mb-2 block text-sm font-semibold text-[#4b2e1f]">
-                        UTR / Transaction ID *
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          upiTransactionId
-                        }
-                        onChange={
-                          handleUpiTransactionChange
-                        }
-                        maxLength={40}
-                        minLength={6}
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="Enter UTR / Transaction ID"
-                        className={`w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase tracking-wide text-black placeholder:text-gray-500 outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10 ${
-                          errors.transactionId
-                            ? "border-red-400"
-                            : "border-gray-200"
-                        }`}
-                      />
-
-                      <div className="mt-2 flex items-center justify-between gap-3">
-                        <p className="text-xs text-gray-500">
-                          Minimum 6 characters
-                        </p>
-
-                        <p className="text-xs text-gray-400">
-                          {
-                            upiTransactionId.length
-                          }
-                          /40
-                        </p>
-                      </div>
-
-                      {errors.transactionId && (
-                        <p className="mt-1 text-xs text-red-600">
-                          {
-                            errors.transactionId
-                          }
-                        </p>
-                      )}
-                    </div>
-
-                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-[#fffaf2] p-3 transition hover:border-[#d39a38]">
-                      <input
-                        type="checkbox"
-                        checked={
-                          upiPaymentConfirmed
-                        }
-                        onChange={(e) => {
-                          setUpiPaymentConfirmed(
-                            e.target.checked
-                          );
-
-                          setOrderError("");
-
-                          setErrors(
-                            (prev) => ({
-                              ...prev,
-                              payment: "",
-                            })
-                          );
-                        }}
-                        className="mt-0.5 h-4 w-4 accent-[#8f3424]"
-                      />
-
-                      <span className="text-sm leading-5 text-black">
-                        I have completed the
-                        UPI payment of{" "}
-                        <strong className="text-black">
-                          {isCheckoutReady
-                            ? formatCurrency(
-                                finalTotal
-                              )
-                            : "the order amount"}
-                        </strong>{" "}
-                        and the UTR / Transaction
-                        ID entered above is correct.
-                      </span>
-                    </label>
-
-                    {errors.payment && (
-                      <p className="mt-2 text-xs text-red-600">
-                        {errors.payment}
-                      </p>
-                    )}
-
-                    {isUpiPaymentReady &&
-                      upiTransactionId.length >=
-                        6 &&
-                      upiPaymentConfirmed && (
-                        <div className="mt-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-3">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
-                            <FiCheck />
-                          </div>
-
-                          <div>
-                            <p className="text-sm font-semibold text-green-700">
-                              Payment details ready
-                            </p>
-
-                            <p className="mt-1 text-xs leading-5 text-green-700">
-                              Your UTR will be
-                              submitted with the
-                              order for manual
-                              verification.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                )}
               </div>
 
-              <div className="mt-8 rounded-xl border border-[#eadbc6] bg-[#fffaf2] p-4">
-                {isCheckoutReady &&
-                isUpiPaymentReady ? (
-                  <div className="flex items-center gap-3 text-sm font-semibold text-green-700">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100">
-                      <FiCheck />
-                    </div>
+              <div className="space-y-3">
+                {/* COD */}
 
-                    All required details
-                    are complete. Your
-                    order total is ready.
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3 text-sm text-[#6b4633]">
-                    <FiShield className="mt-0.5 shrink-0 text-[#8f3424]" />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPaymentMethod(
+                      "cod"
+                    )
+                  }
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    paymentMethod ===
+                    "cod"
+                      ? "border-[#8f3424] bg-[#fff8ef] ring-2 ring-[#8f3424]/10"
+                      : "border-[#eadbc8] bg-white hover:border-[#cdb79e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                        paymentMethod ===
+                        "cod"
+                          ? "border-[#8f3424] bg-[#8f3424] text-white"
+                          : "border-[#bda58e]"
+                      }`}
+                    >
+                      {paymentMethod ===
+                        "cod" && (
+                        <FiCheck size={12} />
+                      )}
+                    </div>
 
                     <div>
                       <p className="font-semibold">
-                        Complete checkout
-                        form
+                        Cash on Delivery
                       </p>
 
-                      <p className="mt-1 text-xs leading-5 text-gray-500">
-                        Please fill your
-                        name, mobile,
-                        email, address,
-                        city, state and
-                        pincode. Shipping
-                        must also be
-                        verified before
-                        the final amount
-                        is displayed.
-
-                        {paymentMode ===
-                          "prepaid" &&
-                          " For UPI, complete payment, enter your UTR and confirm the payment."}
+                      <p className="mt-1 text-xs text-[#8b7565]">
+                        Delivery ke time payment
+                        karein.
                       </p>
                     </div>
+                  </div>
+                </button>
+
+                {/* UPI */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPaymentMethod(
+                      "upi"
+                    )
+                  }
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    paymentMethod ===
+                    "upi"
+                      ? "border-[#8f3424] bg-[#fff8ef] ring-2 ring-[#8f3424]/10"
+                      : "border-[#eadbc8] bg-white hover:border-[#cdb79e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                        paymentMethod ===
+                        "upi"
+                          ? "border-[#8f3424] bg-[#8f3424] text-white"
+                          : "border-[#bda58e]"
+                      }`}
+                    >
+                      {paymentMethod ===
+                        "upi" && (
+                        <FiCheck size={12} />
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="font-semibold">
+                        Prepaid UPI
+                      </p>
+
+                      <p className="mt-1 text-xs text-[#8b7565]">
+                        UPI ID ya dynamic QR
+                        se payment karein.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* UPI OPTIONS */}
+
+                {paymentMethod ===
+                  "upi" && (
+                  <div className="ml-0 space-y-3 rounded-2xl border border-[#eadbc8] bg-[#fffaf2] p-4">
+                    {/* UPI ID */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUpiMethod(
+                          "upi_id"
+                        )
+                      }
+                      className={`flex w-full items-center justify-between rounded-xl border p-3 text-left ${
+                        upiMethod ===
+                        "upi_id"
+                          ? "border-[#8f3424] bg-white"
+                          : "border-[#eadbc8] bg-white"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold">
+                          UPI ID
+                        </p>
+
+                        <p className="mt-1 text-xs text-[#8b7565]">
+                          {VRAJ_UPI_ID}
+                        </p>
+                      </div>
+
+                      {upiMethod ===
+                        "upi_id" && (
+                        <FiCheck className="text-[#8f3424]" />
+                      )}
+                    </button>
+
+                    {/* QR */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUpiMethod(
+                          "qr"
+                        )
+                      }
+                      className={`flex w-full items-center justify-between rounded-xl border p-3 text-left ${
+                        upiMethod ===
+                        "qr"
+                          ? "border-[#8f3424] bg-white"
+                          : "border-[#eadbc8] bg-white"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold">
+                          Dynamic QR
+                        </p>
+
+                        <p className="mt-1 text-xs text-[#8b7565]">
+                          Final amount ke saath
+                          QR generate hoga.
+                        </p>
+                      </div>
+
+                      {upiMethod ===
+                        "qr" && (
+                        <FiCheck className="text-[#8f3424]" />
+                      )}
+                    </button>
+
+                    {/* UPI DETAILS */}
+
+                    <div className="rounded-xl border border-[#eadbc8] bg-white p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-[#8b7565]">
+                            UPI ID
+                          </p>
+
+                          <p className="mt-1 text-sm font-bold">
+                            {VRAJ_UPI_ID}
+                          </p>
+
+                          <p className="mt-1 text-xs text-[#8b7565]">
+                            {VRAJ_UPI_NAME}
+                          </p>
+                        </div>
+
+                        <a
+                          href={
+                            upiUrl
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#8f3424] px-3 py-2 text-xs font-semibold text-white"
+                        >
+                          Open UPI
+                          <FiExternalLink />
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* QR */}
+
+                    {upiMethod ===
+                      "qr" && (
+                      <div className="flex flex-col items-center rounded-xl border border-[#eadbc8] bg-white p-5">
+                        <QRCodeCanvas
+                          value={
+                            upiUrl
+                          }
+                          size={190}
+                          level="M"
+                          includeMargin
+                        />
+
+                        <p className="mt-4 text-sm font-bold">
+                          {formatPrice(
+                            finalOrderAmount
+                          )}
+                        </p>
+
+                        <p className="mt-1 text-xs text-[#8b7565]">
+                          Scan QR and pay exact
+                          amount
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </section>
           </div>
 
-          <aside className="lg:sticky lg:top-6 lg:h-fit">
-            <section className="overflow-hidden rounded-2xl border border-[#eadbc6] bg-white shadow-sm">
-              <div className="border-b border-[#eadbc6] bg-[#fffaf2] px-5 py-5">
+          {/* =================================================
+              RIGHT - ORDER SUMMARY
+          ================================================= */}
+
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <div className="overflow-hidden rounded-3xl border border-[#eadbc8] bg-white shadow-sm">
+              {/* Header */}
+
+              <div className="border-b border-[#eadbc8] bg-[#fffaf2] px-5 py-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-[#4b2e1f]">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#b27b42]">
                       Order Summary
-                    </h2>
-
-                    <p className="mt-1 text-xs text-gray-500">
-                      {totalItems} item
-                      {totalItems !== 1
-                        ? "s"
-                        : ""}
                     </p>
+
+                    <h2 className="mt-1 text-xl font-bold">
+                      Your Order
+                    </h2>
                   </div>
 
-                  <FiPackage
-                    className="text-[#8f3424]"
-                    size={22}
-                  />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#8f3424] shadow-sm">
+                    <FiPackage />
+                  </div>
                 </div>
               </div>
 
-              <div className="max-h-[420px] space-y-4 overflow-y-auto p-5">
+              {/* Products */}
+
+              <div className="max-h-[360px] space-y-4 overflow-y-auto p-5">
                 {orderItems.map(
-                  (item, index) => (
+                  (
+                    item,
+                    index
+                  ) => (
                     <div
-                      key={`${item.sku || item.name}-${index}`}
+                      key={`${item.sku}-${index}`}
                       className="flex gap-3"
                     >
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f4eadb]">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#eadbc8] bg-[#fffaf2]">
                         {item.image ? (
                           <img
-                            src={item.image}
-                            alt={item.name}
+                            src={
+                              item.image
+                            }
+                            alt={
+                              item.name
+                            }
                             className="h-full w-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display =
-                                "none";
-                            }}
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[#8f3424]">
-                            <FiPackage
-                              size={24}
-                            />
+                          <div className="flex h-full w-full items-center justify-center text-[#bca895]">
+                            <FiShoppingBag />
                           </div>
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#4b2e1f]">
+                        <p className="line-clamp-2 text-sm font-semibold">
                           {item.name}
                         </p>
 
-                        <p className="mt-1 text-xs text-gray-500">
-                          SKU:{" "}
-                          <span className="font-medium">
-                            {item.sku ||
-                              "N/A"}
+                        {item.sku && (
+                          <p className="mt-1 text-[10px] text-[#8b7565]">
+                            SKU: {item.sku}
+                          </p>
+                        )}
+
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          <span className="text-xs text-[#8b7565]">
+                            Qty:{" "}
+                            {
+                              item.quantity
+                            }
                           </span>
-                        </p>
 
-                        <p className="mt-1 text-xs text-gray-500">
-                          Qty:{" "}
-                          {item.quantity}
-                        </p>
-
-                        <div className="mt-1 flex items-center gap-2">
-                          <span className="text-sm font-bold text-[#8f3424]">
-                            {formatCurrency(
-                              item.sellingPrice *
-                                item.quantity
+                          <span className="text-sm font-bold">
+                            {formatPrice(
+                              item.sellingSubtotal
                             )}
                           </span>
-
-                          {item.originalPrice >
-                            item.sellingPrice && (
-                            <span className="text-xs text-gray-400 line-through">
-                              {formatCurrency(
-                                item.originalPrice *
-                                  item.quantity
-                              )}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -3426,335 +3311,255 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              <div className="border-t border-[#eadbc6] p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <FiGift className="text-[#8f3424]" />
+              {/* Price Breakdown */}
 
-                  <p className="font-semibold text-[#4b2e1f]">
-                    Coupon
-                  </p>
-                </div>
-
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-3">
-                    <div>
-                      <p className="text-sm font-bold text-green-700">
-                        {
-                          appliedCoupon.code
-                        }
-                      </p>
-
-                      <p className="text-xs text-green-600">
-                        {isCheckoutReady
-                          ? formatCurrency(
-                              couponDiscount
-                            )
-                          : "—"}{" "}
-                        discount
-                      </p>
-                    </div>
-
-                    <FiCheck className="text-green-600" />
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-500">
-                    Coupon can be
-                    applied from the
-                    cart.
-                  </div>
-                )}
-
-                {couponMessage && (
-                  <p className="mt-2 text-xs text-green-700">
-                    {couponMessage}
-                  </p>
-                )}
-
-                {couponError && (
-                  <p className="mt-2 text-xs text-red-600">
-                    {couponError}
-                  </p>
-                )}
-              </div>
-
-              <div className="border-t border-[#eadbc6] p-5">
+              <div className="border-t border-[#eadbc8] p-5">
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-600">
+                  {/* MRP */}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7b6759]">
+                      Subtotal
+                    </span>
+
+                    <span className="font-medium">
+                      {formatPrice(
+                        productTotal
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Product Discount */}
+
+                  {productDiscount >
+                    0 && (
+                    <div className="flex items-center justify-between text-green-700">
+                      <span>
+                        Product Discount
+                      </span>
+
+                      <span>
+                        -{" "}
+                        {formatPrice(
+                          productDiscount
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Coupon */}
+
+                  {couponDiscount >
+                    0 && (
+                    <div className="flex items-center justify-between text-green-700">
+                      <span className="flex items-center gap-1">
+                        <FiGift />
+                        Coupon
+                        {couponCode
+                          ? ` (${couponCode})`
+                          : ""}
+                      </span>
+
+                      <span>
+                        -{" "}
+                        {formatPrice(
+                          couponDiscount
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Selling subtotal */}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7b6759]">
                       Product Total
                     </span>
 
-                    <span className="font-medium text-[#4b2e1f]">
-                      {isCheckoutReady
-                        ? formatCurrency(
-                            productTotal
-                          )
-                        : "—"}
+                    <span className="font-semibold">
+                      {formatPrice(
+                        finalSellingSubtotal
+                      )}
                     </span>
                   </div>
 
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-600">
-                      Product Discount
-                    </span>
+                  {/* Shipping */}
 
-                    <span className="font-medium text-green-600">
-                      {isCheckoutReady
-                        ? productDiscount >
-                          0
-                          ? `- ${formatCurrency(
-                              productDiscount
-                            )}`
-                          : formatCurrency(
-                              0
-                            )
-                        : "—"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-600">
-                      Coupon Discount
-                    </span>
-
-                    <span className="font-medium text-green-600">
-                      {isCheckoutReady
-                        ? couponDiscount >
-                          0
-                          ? `- ${formatCurrency(
-                              couponDiscount
-                            )}`
-                          : formatCurrency(
-                              0
-                            )
-                        : "—"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4 border-t border-dashed border-gray-200 pt-3">
-                    <span className="font-semibold text-[#4b2e1f]">
-                      Product Amount
-                    </span>
-
-                    <span className="font-bold text-[#4b2e1f]">
-                      {isCheckoutReady
-                        ? formatCurrency(
-                            netProductAmount
-                          )
-                        : "—"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7b6759]">
                       Shipping
                     </span>
 
-                    <span
-                      className={
-                        finalShipping === 0
-                          ? "font-semibold text-green-600"
-                          : "font-medium text-[#4b2e1f]"
-                      }
-                    >
-                      {isCheckoutReady
-                        ? finalShipping === 0
-                          ? "FREE"
-                          : formatCurrency(
-                              finalShipping
-                            )
-                        : "—"}
-                    </span>
+                    {shippingLoading ? (
+                      <FiLoader className="animate-spin text-[#8f3424]" />
+                    ) : shippingCharge ===
+                      0 &&
+                      shippingData ? (
+                      <span className="font-bold text-green-700">
+                        FREE
+                      </span>
+                    ) : (
+                      <span className="font-semibold">
+                        {formatPrice(
+                          shippingCharge
+                        )}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex justify-between gap-4 border-t border-dashed border-gray-200 pt-3">
-                    <span className="font-semibold text-[#4b2e1f]">
-                      Total Amount
-                      Before Tax
-                    </span>
+                  {/* Taxable value */}
 
-                    <span className="font-bold text-[#4b2e1f]">
-                      {isCheckoutReady
-                        ? formatCurrency(
-                            totalAmountBeforeTax
-                          )
-                        : "—"}
-                    </span>
-                  </div>
-
-                  {gstData.isInterState ? (
-                    <div className="flex justify-between gap-4 text-xs">
-                      <span className="text-gray-500">
-                        IGST ({GST_RATE}%)
+                  <div className="border-t border-dashed border-[#dfcdb8] pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#7b6759]">
+                        Taxable Value
                       </span>
 
-                      <span className="text-gray-600">
-                        {isCheckoutReady
-                          ? formatCurrency(
-                              gstData.igst
-                            )
-                          : "—"}
+                      <span className="font-semibold">
+                        {formatPrice(
+                          totalAmountBeforeTax
+                        )}
                       </span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between gap-4 text-xs">
-                        <span className="text-gray-500">
-                          CGST ({CGST_RATE}%)
+                  </div>
+
+                  {/* GST */}
+
+                  <div className="rounded-xl bg-[#fffaf2] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-semibold">
+                        GST
+                      </span>
+
+                      <span className="font-bold">
+                        {formatPrice(
+                          finalGST.totalGST
+                        )}
+                      </span>
+                    </div>
+
+                    {finalGST.isInterState ? (
+                      <div className="flex items-center justify-between text-xs text-[#7b6759]">
+                        <span>
+                          IGST @ 5%
                         </span>
 
-                        <span className="text-gray-600">
-                          {isCheckoutReady
-                            ? formatCurrency(
-                                gstData.cgst
-                              )
-                            : "—"}
+                        <span>
+                          {formatPrice(
+                            finalGST.igst
+                          )}
                         </span>
                       </div>
+                    ) : (
+                      <div className="space-y-1 text-xs text-[#7b6759]">
+                        <div className="flex items-center justify-between">
+                          <span>
+                            CGST @ 2.5%
+                          </span>
 
-                      <div className="flex justify-between gap-4 text-xs">
-                        <span className="text-gray-500">
-                          SGST ({SGST_RATE}%)
-                        </span>
+                          <span>
+                            {formatPrice(
+                              finalGST.cgst
+                            )}
+                          </span>
+                        </div>
 
-                        <span className="text-gray-600">
-                          {isCheckoutReady
-                            ? formatCurrency(
-                                gstData.sgst
-                              )
-                            : "—"}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span>
+                            SGST @ 2.5%
+                          </span>
+
+                          <span>
+                            {formatPrice(
+                              finalGST.sgst
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </>
-                  )}
+                    )}
+                  </div>
 
-                  <div className="flex justify-between gap-4 text-xs">
-                    <span className="font-semibold text-gray-600">
-                      Total GST
-                    </span>
+                  {/* Final */}
 
-                    <span className="font-bold text-gray-700">
-                      {isCheckoutReady
-                        ? formatCurrency(
-                            gstData.totalGST
-                          )
-                        : "—"}
-                    </span>
+                  <div className="mt-4 rounded-2xl bg-[#8f3424] p-4 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-white/75">
+                          Grand Total
+                        </p>
+
+                        <p className="mt-1 text-2xl font-bold">
+                          {formatPrice(
+                            finalOrderAmount
+                          )}
+                        </p>
+                      </div>
+
+                      <FiShield
+                        size={25}
+                        className="text-white/80"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-5 border-t-2 border-[#eadbc6] pt-5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-500">
-                        Grand Total
-                      </p>
+                {/* =================================================
+                    GST NOTE
+                ================================================= */}
 
-                      <p className="mt-1 text-xs text-gray-400">
-                        GST added on top
-                      </p>
-                    </div>
+                <p className="mt-4 text-[11px] leading-5 text-[#8b7565]">
+                  GST 5% taxable value ke
+                  upar add kiya gaya hai.
+                  Rajasthan ke andar
+                  CGST 2.5% + SGST 2.5%
+                  aur Rajasthan ke bahar
+                  IGST 5% apply hoga.
+                </p>
 
-                    <p className="text-2xl font-bold text-[#8f3424]">
-                      {isCheckoutReady
-                        ? formatCurrency(
-                            finalTotal
-                          )
-                        : "—"}
-                    </p>
-                  </div>
-                </div>
+                {/* =================================================
+                    PLACE ORDER
+                ================================================= */}
 
                 <button
                   type="button"
-                  onClick={placeOrder}
+                  onClick={
+                    placeOrder
+                  }
                   disabled={
                     placingOrder ||
                     shippingLoading ||
-                    pincodeLoading ||
-                    !canPlaceOrder
+                    !shippingData
                   }
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#8f3424] px-5 py-4 font-bold text-white shadow-sm transition hover:bg-[#76291d] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#8f3424] px-5 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#76291d] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {placingOrder ? (
                     <>
                       <FiLoader className="animate-spin" />
                       Placing Order...
                     </>
-                  ) : !isCheckoutReady ? (
-                    <>
-                      <FiLock />
-                      Complete Form First
-                    </>
-                  ) : paymentMode ===
-                      "prepaid" &&
-                    !isUpiPaymentReady ? (
-                    <>
-                      <FiCreditCard />
-                      Enter UTR & Confirm Payment
-                    </>
-                  ) : paymentMode ===
-                    "prepaid" ? (
-                    <>
-                      <FiCheck />
-                      Submit UPI Order
-                    </>
                   ) : (
                     <>
-                      <FiLock />
                       Place Order
+                      <FiChevronRight />
                     </>
                   )}
                 </button>
 
-                {paymentMode ===
-                  "prepaid" &&
-                  isCheckoutReady &&
-                  !isUpiPaymentReady && (
-                    <p className="mt-3 text-center text-xs leading-5 text-red-600">
-                      Complete UPI payment, enter
-                      your UTR / Transaction ID and
-                      confirm the payment before
-                      placing the order.
-                    </p>
-                  )}
+                {/* =================================================
+                    SECURITY
+                ================================================= */}
 
-                {paymentMode ===
-                  "prepaid" &&
-                  isUpiPaymentReady &&
-                  isCheckoutReady && (
-                    <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3">
-                      <p className="text-xs leading-5 text-yellow-800">
-                        <strong>
-                          Important:
-                        </strong>{" "}
-                        Your UPI payment will be
-                        submitted for manual
-                        verification. The order
-                        payment status will remain{" "}
-                        <strong>
-                          Pending
-                        </strong>{" "}
-                        until Vraj Creation verifies
-                        the UTR.
-                      </p>
-                    </div>
-                  )}
-
-                <div className="mt-4 flex items-start gap-3 rounded-xl bg-[#fffaf2] p-3">
-                  <FiShield className="mt-0.5 shrink-0 text-[#8f3424]" />
-
-                  <p className="text-xs leading-5 text-gray-600">
-                    Your order details are
-                    securely submitted to
-                    Vraj Creation.
-                  </p>
+                <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#8b7565]">
+                  <FiLock />
+                  Secure checkout
                 </div>
               </div>
-            </section>
+            </div>
           </aside>
         </div>
       </main>
     </div>
   );
-}
+};
+
+export default CheckoutPage;
