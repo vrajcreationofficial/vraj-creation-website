@@ -1,9 +1,10 @@
 // =====================================================
 // VRAJ CREATION - EMAIL SERVICE
+// RESEND API
 // GST-EXCLUSIVE / GST ADDED ON TOP
 // =====================================================
 
-const nodemailer = require("nodemailer");
+const fs = require("fs/promises");
 
 const {
   generateGSTInvoicePDF,
@@ -25,72 +26,64 @@ const CGST_RATE = 2.5;
 const SGST_RATE = 2.5;
 
 // =====================================================
-// EMAIL CONFIGURATION
+// RESEND EMAIL CONFIGURATION
 // =====================================================
 
-const SMTP_HOST =
-  process.env.SMTP_HOST;
-
-const SMTP_PORT =
-  Number(
-    process.env.SMTP_PORT || 587
-  );
-
-const SMTP_USER =
-  process.env.SMTP_USER;
-
-const SMTP_PASS =
-  process.env.SMTP_PASS;
+const RESEND_API_KEY =
+  process.env.RESEND_API_KEY;
 
 const EMAIL_FROM =
   process.env.EMAIL_FROM ||
-  SMTP_USER;
+  "onboarding@resend.dev";
 
 const ADMIN_ORDER_EMAIL =
   process.env.ADMIN_ORDER_EMAIL;
 
 // =====================================================
-// SMTP TRANSPORTER
-// =====================================================
-// IMPORTANT:
-//
-// connectionTimeout:
-// SMTP server se connection ke liye max 10 sec
-//
-// greetingTimeout:
-// SMTP greeting ke liye max 10 sec
-//
-// socketTimeout:
-// SMTP response ke liye max 15 sec
-//
-// Isse email server hang hone par order request
-// indefinitely wait nahi karegi.
+// RESEND API
 // =====================================================
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-
-  // Force IPv4 on Render
-  family: 4,
-
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const RESEND_API_URL =
+  "https://api.resend.com/emails";
 
 // =====================================================
-// VERIFY EMAIL CONNECTION
+// LOG CONFIG
+// =====================================================
+
+console.log(
+  "===================================="
+);
+
+console.log(
+  "Email Service: Resend API"
+);
+
+console.log(
+  "Resend API Key:",
+  RESEND_API_KEY
+    ? "LOADED"
+    : "NOT CONFIGURED"
+);
+
+console.log(
+  "Email From:",
+  EMAIL_FROM ||
+    "NOT CONFIGURED"
+);
+
+console.log(
+  "Admin Email:",
+  ADMIN_ORDER_EMAIL
+    ? "CONFIGURED"
+    : "NOT CONFIGURED"
+);
+
+console.log(
+  "===================================="
+);
+
+// =====================================================
+// VERIFY RESEND CONFIGURATION
 // =====================================================
 
 const verifyEmailConnection =
@@ -101,18 +94,14 @@ const verifyEmailConnection =
       );
 
       console.log(
-        "Checking SMTP connection..."
+        "Checking Resend email configuration..."
       );
 
       console.log(
-        "SMTP Host:",
-        SMTP_HOST ||
-          "NOT CONFIGURED"
-      );
-
-      console.log(
-        "SMTP Port:",
-        SMTP_PORT
+        "Resend API Key:",
+        RESEND_API_KEY
+          ? "LOADED"
+          : "NOT CONFIGURED"
       );
 
       console.log(
@@ -121,28 +110,27 @@ const verifyEmailConnection =
           "NOT CONFIGURED"
       );
 
-      if (!SMTP_HOST) {
+      console.log(
+        "Admin Email:",
+        ADMIN_ORDER_EMAIL
+          ? "CONFIGURED"
+          : "NOT CONFIGURED"
+      );
+
+      if (!RESEND_API_KEY) {
         throw new Error(
-          "SMTP_HOST is not configured."
+          "RESEND_API_KEY is not configured."
         );
       }
 
-      if (!SMTP_USER) {
+      if (!EMAIL_FROM) {
         throw new Error(
-          "SMTP_USER is not configured."
+          "EMAIL_FROM is not configured."
         );
       }
-
-      if (!SMTP_PASS) {
-        throw new Error(
-          "SMTP_PASS is not configured."
-        );
-      }
-
-      await transporter.verify();
 
       console.log(
-        "Email SMTP connection successful"
+        "Resend email service configuration successful"
       );
 
       console.log(
@@ -156,7 +144,7 @@ const verifyEmailConnection =
       );
 
       console.error(
-        "Email SMTP connection failed"
+        "Resend email configuration failed"
       );
 
       console.error(
@@ -225,17 +213,6 @@ const normalizeState = (
 // =====================================================
 // HSN CODE
 // =====================================================
-// IMPORTANT:
-//
-// HSN ONLY trusted product/order data se liya jayega.
-//
-// Category ke basis par HSN generate nahi hoga.
-//
-// Valid:
-// 4 digit
-// 6 digit
-// 8 digit
-// =====================================================
 
 const normalizeHSNCode = (
   value = ""
@@ -267,9 +244,6 @@ const normalizeHSNCode = (
 
 // =====================================================
 // DEFAULT HSN
-// =====================================================
-// Backward compatibility only.
-// No category based HSN.
 // =====================================================
 
 const getDefaultHSNCode =
@@ -315,15 +289,10 @@ const getItemHSNCode = (
 // =====================================================
 // GST EXCLUSIVE
 //
-// Example:
-//
 // Product after discount = ₹600
 // Shipping               = ₹60
-// -----------------------------
 // Total Before Tax       = ₹660
-//
 // GST 5%                 = ₹33
-// -----------------------------
 // Grand Total            = ₹693
 //
 // Rajasthan:
@@ -564,8 +533,6 @@ const createItemsHtml = (
         return `
           <tr>
 
-            <!-- SERIAL -->
-
             <td
               style="
                 padding:10px;
@@ -575,8 +542,6 @@ const createItemsHtml = (
             >
               ${index + 1}
             </td>
-
-            <!-- PRODUCT -->
 
             <td
               style="
@@ -613,8 +578,6 @@ const createItemsHtml = (
               }
             </td>
 
-            <!-- HSN -->
-
             <td
               style="
                 padding:10px;
@@ -629,8 +592,6 @@ const createItemsHtml = (
               )}
             </td>
 
-            <!-- QTY -->
-
             <td
               style="
                 padding:10px;
@@ -640,8 +601,6 @@ const createItemsHtml = (
             >
               ${quantity}
             </td>
-
-            <!-- PRICE -->
 
             <td
               style="
@@ -654,8 +613,6 @@ const createItemsHtml = (
                 price
               )}
             </td>
-
-            <!-- SUBTOTAL -->
 
             <td
               style="
@@ -1931,6 +1888,198 @@ const createOrderHtml = (
 };
 
 // =====================================================
+// RESEND API HELPER
+// =====================================================
+
+const sendViaResend = async ({
+  to,
+  subject,
+  html,
+  attachments = [],
+}) => {
+  if (!RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
+  }
+
+  if (!EMAIL_FROM) {
+    throw new Error(
+      "EMAIL_FROM is not configured."
+    );
+  }
+
+  if (!to) {
+    throw new Error(
+      "Recipient email is required."
+    );
+  }
+
+  // ===================================================
+  // PREPARE ATTACHMENTS
+  // ===================================================
+
+  const resendAttachments = [];
+
+  for (
+    const attachment of attachments
+  ) {
+    if (
+      !attachment
+    ) {
+      continue;
+    }
+
+    // -----------------------------------------------
+    // File path attachment
+    // -----------------------------------------------
+
+    if (
+      attachment.path
+    ) {
+      const fileBuffer =
+        await fs.readFile(
+          attachment.path
+        );
+
+      resendAttachments.push({
+        filename:
+          attachment.filename ||
+          "attachment.pdf",
+
+        content:
+          fileBuffer.toString(
+            "base64"
+          ),
+      });
+
+      continue;
+    }
+
+    // -----------------------------------------------
+    // Buffer attachment
+    // -----------------------------------------------
+
+    if (
+      attachment.content &&
+      Buffer.isBuffer(
+        attachment.content
+      )
+    ) {
+      resendAttachments.push({
+        filename:
+          attachment.filename ||
+          "attachment.pdf",
+
+        content:
+          attachment.content.toString(
+            "base64"
+          ),
+      });
+
+      continue;
+    }
+
+    // -----------------------------------------------
+    // Base64/string attachment
+    // -----------------------------------------------
+
+    if (
+      attachment.content
+    ) {
+      resendAttachments.push({
+        filename:
+          attachment.filename ||
+          "attachment.pdf",
+
+        content:
+          String(
+            attachment.content
+          ),
+      });
+    }
+  }
+
+  // ===================================================
+  // RESEND PAYLOAD
+  // ===================================================
+
+  const payload = {
+    from:
+      EMAIL_FROM,
+
+    to: [
+      to,
+    ],
+
+    subject,
+
+    html,
+
+    headers: {
+      "X-Vraj-Creation":
+        "Order",
+    },
+  };
+
+  if (
+    resendAttachments.length
+  ) {
+    payload.attachments =
+      resendAttachments;
+  }
+
+  // ===================================================
+  // SEND REQUEST
+  // ===================================================
+
+  const response =
+    await fetch(
+      RESEND_API_URL,
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${RESEND_API_KEY}`,
+
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify(
+            payload
+          ),
+      }
+    );
+
+  let responseData = null;
+
+  try {
+    responseData =
+      await response.json();
+  } catch {
+    responseData = null;
+  }
+
+  if (
+    !response.ok
+  ) {
+    const errorMessage =
+      responseData?.message ||
+      responseData?.error ||
+      `Resend API returned HTTP ${response.status}`;
+
+    throw new Error(
+      errorMessage
+    );
+  }
+
+  return responseData;
+};
+
+// =====================================================
 // SEND ADMIN ORDER EMAIL
 // =====================================================
 
@@ -1957,12 +2106,10 @@ const sendAdminOrderEmail =
     }
 
     if (
-      !SMTP_HOST ||
-      !SMTP_USER ||
-      !SMTP_PASS
+      !RESEND_API_KEY
     ) {
       console.error(
-        "Admin email skipped: SMTP configuration is incomplete."
+        "Admin email skipped: RESEND_API_KEY is not configured."
       );
 
       return {
@@ -1971,7 +2118,7 @@ const sendAdminOrderEmail =
         skipped: true,
 
         reason:
-          "SMTP configuration incomplete",
+          "RESEND_API_KEY not configured",
       };
     }
 
@@ -1981,14 +2128,11 @@ const sendAdminOrderEmail =
 
     try {
       console.log(
-        `[EMAIL] Sending admin email for ${orderNumber}...`
+        `[EMAIL] Sending admin email for ${orderNumber} to ${ADMIN_ORDER_EMAIL}...`
       );
 
-      const info =
-        await transporter.sendMail({
-          from:
-            EMAIL_FROM,
-
+      const result =
+        await sendViaResend({
           to:
             ADMIN_ORDER_EMAIL,
 
@@ -2005,22 +2149,21 @@ const sendAdminOrderEmail =
             ),
 
           attachments,
-
-          headers: {
-            "X-Vraj-Creation":
-              "Order",
-          },
         });
 
+      const messageId =
+        result?.id ||
+        result?.data?.id ||
+        "";
+
       console.log(
-        `[EMAIL] Admin order email sent successfully: ${info.messageId}`
+        `[EMAIL] Admin order email sent successfully: ${messageId}`
       );
 
       return {
         success: true,
 
-        messageId:
-          info.messageId,
+        messageId,
       };
     } catch (error) {
       console.error(
@@ -2069,12 +2212,10 @@ const sendCustomerOrderEmail =
     }
 
     if (
-      !SMTP_HOST ||
-      !SMTP_USER ||
-      !SMTP_PASS
+      !RESEND_API_KEY
     ) {
       console.error(
-        "Customer email skipped: SMTP configuration is incomplete."
+        "Customer email skipped: RESEND_API_KEY is not configured."
       );
 
       return {
@@ -2083,7 +2224,7 @@ const sendCustomerOrderEmail =
         skipped: true,
 
         reason:
-          "SMTP configuration incomplete",
+          "RESEND_API_KEY not configured",
       };
     }
 
@@ -2096,11 +2237,8 @@ const sendCustomerOrderEmail =
         `[EMAIL] Sending customer email for ${orderNumber} to ${customerEmail}...`
       );
 
-      const info =
-        await transporter.sendMail({
-          from:
-            EMAIL_FROM,
-
+      const result =
+        await sendViaResend({
           to:
             customerEmail,
 
@@ -2117,22 +2255,21 @@ const sendCustomerOrderEmail =
             ),
 
           attachments,
-
-          headers: {
-            "X-Vraj-Creation":
-              "Order",
-          },
         });
 
+      const messageId =
+        result?.id ||
+        result?.data?.id ||
+        "";
+
       console.log(
-        `[EMAIL] Customer order email sent successfully: ${info.messageId}`
+        `[EMAIL] Customer order email sent successfully: ${messageId}`
       );
 
       return {
         success: true,
 
-        messageId:
-          info.messageId,
+        messageId,
       };
     } catch (error) {
       console.error(
@@ -2265,18 +2402,17 @@ const sendOrderEmails =
     // =================================================
     // SEND BOTH EMAILS
     // =================================================
-    // Admin and customer emails parallel jayengi.
-    // Ek fail hone par doosri continue karegi.
-    // =================================================
 
     let adminResult = {
       success: false,
+
       error:
         "Admin email not attempted",
     };
 
     let customerResult = {
       success: false,
+
       error:
         "Customer email not attempted",
     };
@@ -2408,7 +2544,7 @@ const sendOrderEmails =
 // =====================================================
 
 module.exports = {
-  transporter,
+  transporter: null,
 
   verifyEmailConnection,
 
