@@ -380,7 +380,7 @@ const StatusBadge = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${
         styles[normalized] ||
         "bg-gray-100 text-gray-700 border-gray-200"
       }`}
@@ -1156,11 +1156,12 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6 dark:bg-gray-950">
-        <div className="mx-auto max-w-[1600px]">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 dark:bg-gray-950">
+        <div className="mx-auto w-full max-w-[1600px]">
+          {/* ================= HEADER ================= */}
+          <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
                 Orders
               </h1>
 
@@ -1173,7 +1174,7 @@ export default function AdminOrders() {
               type="button"
               onClick={refreshOrders}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               <FiRefreshCw
                 className={
@@ -1182,15 +1183,17 @@ export default function AdminOrders() {
                     : ""
                 }
               />
+
               Refresh
             </button>
           </div>
 
+          {/* ================= ERROR ================= */}
           {error && (
-            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
               <FiAlertCircle className="mt-0.5 shrink-0" />
 
-              <div className="flex-1">
+              <div className="min-w-0 flex-1 break-words">
                 {error}
               </div>
 
@@ -1199,33 +1202,34 @@ export default function AdminOrders() {
                 onClick={() =>
                   setError("")
                 }
-                className="shrink-0"
+                className="shrink-0 rounded p-1 hover:bg-red-100 dark:hover:bg-red-900/30"
               >
                 <FiX />
               </button>
             </div>
           )}
 
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+          {/* ================= STATS ================= */}
+          <div className="mb-5 grid grid-cols-2 gap-2.5 sm:mb-6 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
             {statCards.map((card) => {
               const Icon = card.icon;
 
               return (
                 <div
                   key={card.label}
-                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                  className="min-w-0 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4 dark:border-gray-800 dark:bg-gray-900"
                 >
-                  <div className="mb-3 flex items-center justify-between">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
                     <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
                       <Icon />
                     </div>
                   </div>
 
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <p className="truncate text-[11px] font-medium text-gray-500 sm:text-xs dark:text-gray-400">
                     {card.label}
                   </p>
 
-                  <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+                  <p className="mt-1 truncate text-base font-bold text-gray-900 sm:text-lg dark:text-white">
                     {card.value}
                   </p>
                 </div>
@@ -1233,9 +1237,10 @@ export default function AdminOrders() {
             })}
           </div>
 
-          <div className="mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          {/* ================= FILTERS ================= */}
+          <div className="mb-5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4 dark:border-gray-800 dark:bg-gray-900">
             <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
-              <div className="relative">
+              <div className="relative min-w-0">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 
                 <input
@@ -1260,29 +1265,36 @@ export default function AdminOrders() {
                     event.target.value
                   );
                 }}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
               >
                 <option value="">
                   All Order Status
                 </option>
+
                 <option value="pending">
                   Pending
                 </option>
+
                 <option value="confirmed">
                   Confirmed
                 </option>
+
                 <option value="processing">
                   Processing
                 </option>
+
                 <option value="shipped">
                   Shipped
                 </option>
+
                 <option value="delivered">
                   Delivered
                 </option>
+
                 <option value="cancelled">
                   Cancelled
                 </option>
+
                 <option value="failed">
                   Failed
                 </option>
@@ -1296,20 +1308,24 @@ export default function AdminOrders() {
                     event.target.value
                   );
                 }}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
               >
                 <option value="">
                   All Payment Status
                 </option>
+
                 <option value="pending">
                   Pending
                 </option>
+
                 <option value="paid">
                   Paid
                 </option>
+
                 <option value="rejected">
                   Rejected
                 </option>
+
                 <option value="failed">
                   Failed
                 </option>
@@ -1317,16 +1333,17 @@ export default function AdminOrders() {
             </div>
           </div>
 
+          {/* ================= ORDERS LIST ================= */}
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             {loading ? (
-              <div className="flex min-h-[400px] items-center justify-center">
-                <div className="flex items-center gap-3 text-gray-500">
+              <div className="flex min-h-[350px] items-center justify-center p-5 sm:min-h-[400px]">
+                <div className="flex items-center gap-3 text-sm text-gray-500">
                   <FiLoader className="animate-spin text-xl" />
                   Loading orders...
                 </div>
               </div>
             ) : orders.length === 0 ? (
-              <div className="flex min-h-[400px] flex-col items-center justify-center p-6 text-center">
+              <div className="flex min-h-[350px] flex-col items-center justify-center p-6 text-center sm:min-h-[400px]">
                 <FiShoppingBag className="mb-3 text-4xl text-gray-300" />
 
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -1339,39 +1356,402 @@ export default function AdminOrders() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-[1200px] w-full text-left">
+                {/* =================================================
+                    MOBILE ORDER CARDS
+                    ================================================= */}
+                <div className="block md:hidden">
+                  {orders.map((order) => {
+                    const orderId =
+                      getOrderId(order);
+
+                    const method =
+                      getPaymentMethod(order);
+
+                    const payment =
+                      getPaymentStatus(order);
+
+                    const orderStatus =
+                      getOrderStatus(order);
+
+                    const invoiceAllowed =
+                      canGenerateInvoice(order);
+
+                    const verifying =
+                      actionLoading ===
+                      `${orderId}-verify`;
+
+                    const rejecting =
+                      actionLoading ===
+                      `${orderId}-reject`;
+
+                    const statusUpdating =
+                      actionLoading ===
+                      `${orderId}-status`;
+
+                    return (
+                      <div
+                        key={
+                          orderId ||
+                          getOrderNumber(order)
+                        }
+                        className="border-b border-gray-100 p-3 last:border-b-0 dark:border-gray-800"
+                      >
+                        <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                          {/* ORDER HEADER */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                                {getOrderNumber(
+                                  order
+                                )}
+                              </p>
+
+                              <p className="mt-1 truncate text-[11px] text-gray-500">
+                                ID:{" "}
+                                {orderId ||
+                                  "—"}
+                              </p>
+                            </div>
+
+                            <div className="shrink-0">
+                              <StatusBadge
+                                value={
+                                  orderStatus
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          {/* CUSTOMER */}
+                          <div className="mt-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-950">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+                                <FiUser />
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                                  {getCustomerName(
+                                    order
+                                  )}
+                                </p>
+
+                                <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                                  <FiPhone className="shrink-0" />
+
+                                  <span className="truncate">
+                                    {getCustomerPhone(
+                                      order
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                                  <FiMail className="shrink-0" />
+
+                                  <span className="truncate">
+                                    {getCustomerEmail(
+                                      order
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ORDER INFO */}
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                Items
+                              </p>
+
+                              <div className="mt-1 flex items-center gap-1.5">
+                                <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                  {getItemsCount(
+                                    order
+                                  )}
+                                </span>
+
+                                <span className="text-xs text-gray-500">
+                                  item(s)
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                Amount
+                              </p>
+
+                              <p className="mt-1 truncate text-sm font-bold text-gray-900 dark:text-white">
+                                {currency(
+                                  getTotal(
+                                    order
+                                  )
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* PAYMENT + DATE */}
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                Payment
+                              </p>
+
+                              <p className="mt-1 truncate text-xs font-bold uppercase text-gray-800 dark:text-gray-200">
+                                {method}
+                              </p>
+
+                              <div className="mt-1">
+                                <StatusBadge
+                                  value={
+                                    payment
+                                  }
+                                  type="payment"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                Date
+                              </p>
+
+                              <p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
+                                {formatDate(
+                                  order?.createdAt ||
+                                    order?.createdDate ||
+                                    order?.date
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* ACTIONS */}
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            {/* VIEW */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openOrder(
+                                  order
+                                )
+                              }
+                              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs font-semibold text-gray-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-indigo-950/40"
+                            >
+                              <FiEye />
+
+                              <span>
+                                View Order
+                              </span>
+                            </button>
+
+                            {/* INVOICE */}
+                            {invoiceAllowed ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openInvoice(
+                                    order
+                                  )
+                                }
+                                disabled={
+                                  invoiceLoading ===
+                                  orderId
+                                }
+                                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-green-200 bg-white px-2 py-2 text-xs font-semibold text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-900/50 dark:bg-gray-900 dark:hover:bg-green-950/30"
+                              >
+                                {invoiceLoading ===
+                                orderId ? (
+                                  <FiLoader className="animate-spin" />
+                                ) : (
+                                  <FiFileText />
+                                )}
+
+                                <span>
+                                  Invoice
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                title="UPI payment approval required for invoice"
+                                className="inline-flex min-h-[42px] cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800"
+                              >
+                                <FiFileText />
+
+                                <span>
+                                  Invoice
+                                </span>
+                              </button>
+                            )}
+
+                            {/* UPI APPROVE */}
+                            {method ===
+                              "upi" &&
+                              payment ===
+                                "pending" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    verifyPayment(
+                                      order
+                                    )
+                                  }
+                                  disabled={
+                                    verifying ||
+                                    rejecting
+                                  }
+                                  className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-green-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {verifying ? (
+                                    <FiLoader className="animate-spin" />
+                                  ) : (
+                                    <FiCheck />
+                                  )}
+
+                                  <span>
+                                    Approve
+                                  </span>
+                                </button>
+                              )}
+
+                            {/* UPI REJECT */}
+                            {method ===
+                              "upi" &&
+                              payment ===
+                                "pending" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    rejectPayment(
+                                      order
+                                    )
+                                  }
+                                  disabled={
+                                    verifying ||
+                                    rejecting
+                                  }
+                                  className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-red-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {rejecting ? (
+                                    <FiLoader className="animate-spin" />
+                                  ) : (
+                                    <FiX />
+                                  )}
+
+                                  <span>
+                                    Reject
+                                  </span>
+                                </button>
+                              )}
+
+                            {/* STATUS */}
+                            <div
+                              className={
+                                method ===
+                                  "upi" &&
+                                payment ===
+                                  "pending"
+                                  ? "col-span-2"
+                                  : "col-span-2"
+                              }
+                            >
+                              <select
+                                value={
+                                  orderStatus
+                                }
+                                disabled={
+                                  statusUpdating
+                                }
+                                onChange={(
+                                  event
+                                ) =>
+                                  updateOrderStatus(
+                                    order,
+                                    event
+                                      .target
+                                      .value
+                                  )
+                                }
+                                className="min-h-[42px] w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                              >
+                                <option value="pending">
+                                  Pending
+                                </option>
+
+                                <option value="confirmed">
+                                  Confirmed
+                                </option>
+
+                                <option value="processing">
+                                  Processing
+                                </option>
+
+                                <option value="shipped">
+                                  Shipped
+                                </option>
+
+                                <option value="delivered">
+                                  Delivered
+                                </option>
+
+                                <option value="cancelled">
+                                  Cancelled
+                                </option>
+
+                                <option value="failed">
+                                  Failed
+                                </option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* =================================================
+                    DESKTOP ORDER TABLE
+                    ================================================= */}
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full min-w-[1100px] text-left">
                     <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
                       <tr>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Order
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Customer
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Items
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Amount
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Payment
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Order Status
                         </th>
 
-                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                           Date
                         </th>
 
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">
+                        <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">
                           Actions
                         </th>
                       </tr>
@@ -1419,34 +1799,37 @@ export default function AdminOrders() {
                             }
                             className="transition hover:bg-gray-50 dark:hover:bg-gray-800/40"
                           >
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 align-top">
                               <div className="font-semibold text-gray-900 dark:text-white">
                                 {getOrderNumber(
                                   order
                                 )}
                               </div>
 
-                              <div className="mt-1 text-xs text-gray-500">
+                              <div className="mt-1 max-w-[160px] truncate text-xs text-gray-500">
                                 {orderId}
                               </div>
                             </td>
 
-                            <td className="px-4 py-4">
-                              <div className="font-medium text-gray-900 dark:text-white">
+                            <td className="px-4 py-4 align-top">
+                              <div className="max-w-[180px] truncate font-medium text-gray-900 dark:text-white">
                                 {getCustomerName(
                                   order
                                 )}
                               </div>
 
-                              <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                                <FiPhone />
-                                {getCustomerPhone(
-                                  order
-                                )}
+                              <div className="mt-1 flex max-w-[180px] items-center gap-1 truncate text-xs text-gray-500">
+                                <FiPhone className="shrink-0" />
+
+                                <span className="truncate">
+                                  {getCustomerPhone(
+                                    order
+                                  )}
+                                </span>
                               </div>
                             </td>
 
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 align-top">
                               <div className="flex items-center gap-2">
                                 <span className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                                   {getItemsCount(
@@ -1460,8 +1843,8 @@ export default function AdminOrders() {
                               </div>
                             </td>
 
-                            <td className="px-4 py-4">
-                              <div className="font-bold text-gray-900 dark:text-white">
+                            <td className="px-4 py-4 align-top">
+                              <div className="whitespace-nowrap font-bold text-gray-900 dark:text-white">
                                 {currency(
                                   getTotal(
                                     order
@@ -1470,7 +1853,7 @@ export default function AdminOrders() {
                               </div>
                             </td>
 
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 align-top">
                               <div className="mb-1 text-xs font-semibold uppercase text-gray-500">
                                 {method}
                               </div>
@@ -1483,7 +1866,7 @@ export default function AdminOrders() {
                               />
                             </td>
 
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 align-top">
                               <StatusBadge
                                 value={getOrderStatus(
                                   order
@@ -1491,7 +1874,7 @@ export default function AdminOrders() {
                               />
                             </td>
 
-                            <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300">
+                            <td className="whitespace-nowrap px-4 py-4 align-top text-sm text-gray-600 dark:text-gray-300">
                               {formatDate(
                                 order?.createdAt ||
                                   order?.createdDate ||
@@ -1499,8 +1882,9 @@ export default function AdminOrders() {
                               )}
                             </td>
 
-                            <td className="px-4 py-4">
-                              <div className="flex items-center justify-end gap-2">
+                            <td className="px-4 py-4 align-top">
+                              <div className="flex min-w-[280px] flex-wrap items-center justify-end gap-2">
+                                {/* VIEW */}
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1509,11 +1893,12 @@ export default function AdminOrders() {
                                     )
                                   }
                                   title="View Order"
-                                  className="rounded-lg border border-gray-200 p-2 text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-indigo-950/40"
+                                  className="shrink-0 rounded-lg border border-gray-200 p-2 text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-indigo-950/40"
                                 >
                                   <FiEye />
                                 </button>
 
+                                {/* INVOICE */}
                                 {invoiceAllowed ? (
                                   <button
                                     type="button"
@@ -1527,7 +1912,7 @@ export default function AdminOrders() {
                                       orderId
                                     }
                                     title="View Invoice"
-                                    className="rounded-lg border border-green-200 p-2 text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-900/50 dark:hover:bg-green-950/30"
+                                    className="shrink-0 rounded-lg border border-green-200 p-2 text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-900/50 dark:hover:bg-green-950/30"
                                   >
                                     {invoiceLoading ===
                                     orderId ? (
@@ -1541,12 +1926,13 @@ export default function AdminOrders() {
                                     type="button"
                                     disabled
                                     title="UPI payment approval required for invoice"
-                                    className="cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 p-2 text-gray-400 dark:border-gray-700 dark:bg-gray-800"
+                                    className="shrink-0 cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 p-2 text-gray-400 dark:border-gray-700 dark:bg-gray-800"
                                   >
                                     <FiFileText />
                                   </button>
                                 )}
 
+                                {/* UPI ACTIONS */}
                                 {method ===
                                   "upi" &&
                                   payment ===
@@ -1564,7 +1950,7 @@ export default function AdminOrders() {
                                           rejecting
                                         }
                                         title="Approve Payment"
-                                        className="rounded-lg border border-green-200 p-2 text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-900/50"
+                                        className="shrink-0 rounded-lg border border-green-200 p-2 text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-900/50"
                                       >
                                         {verifying ? (
                                           <FiLoader className="animate-spin" />
@@ -1585,7 +1971,7 @@ export default function AdminOrders() {
                                           rejecting
                                         }
                                         title="Reject Payment"
-                                        className="rounded-lg border border-red-200 p-2 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/50"
+                                        className="shrink-0 rounded-lg border border-red-200 p-2 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/50"
                                       >
                                         {rejecting ? (
                                           <FiLoader className="animate-spin" />
@@ -1596,6 +1982,7 @@ export default function AdminOrders() {
                                     </>
                                   )}
 
+                                {/* STATUS */}
                                 <select
                                   value={getOrderStatus(
                                     order
@@ -1611,7 +1998,7 @@ export default function AdminOrders() {
                                         .value
                                     )
                                   }
-                                  className="max-w-[140px] rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs font-medium outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                                  className="w-[140px] shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs font-medium outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
                                 >
                                   <option value="pending">
                                     Pending
@@ -1650,13 +2037,14 @@ export default function AdminOrders() {
                   </table>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
-                  <p className="text-sm text-gray-500">
+                {/* ================= PAGINATION ================= */}
+                <div className="flex flex-col gap-3 border-t border-gray-200 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4 dark:border-gray-800">
+                  <p className="text-center text-sm text-gray-500 sm:text-left">
                     Page {page} of{" "}
                     {totalPages}
                   </p>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full items-center justify-center gap-2 sm:w-auto">
                     <button
                       type="button"
                       onClick={() =>
@@ -1671,9 +2059,10 @@ export default function AdminOrders() {
                         page <= 1 ||
                         loading
                       }
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                       <FiChevronLeft />
+
                       Previous
                     </button>
 
@@ -1692,9 +2081,10 @@ export default function AdminOrders() {
                           totalPages ||
                         loading
                       }
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                       Next
+
                       <FiChevronRight />
                     </button>
                   </div>
@@ -1704,16 +2094,18 @@ export default function AdminOrders() {
           </div>
         </div>
 
+        {/* ================= ORDER DETAILS MODAL ================= */}
         {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
-              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-2 sm:items-center sm:p-4">
+            <div className="my-2 flex max-h-[calc(100vh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl sm:my-0 sm:max-h-[92vh] sm:rounded-2xl dark:bg-gray-900">
+              {/* ================= MODAL HEADER ================= */}
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-3 py-3 sm:px-5 sm:py-4 dark:border-gray-800">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-gray-900 sm:text-lg dark:text-white">
                     Order Details
                   </h2>
 
-                  <p className="text-sm text-gray-500">
+                  <p className="mt-0.5 truncate text-xs text-gray-500 sm:text-sm">
                     {getOrderNumber(
                       selectedOrder
                     )}
@@ -1725,24 +2117,26 @@ export default function AdminOrders() {
                   onClick={() =>
                     setSelectedOrder(null)
                   }
-                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <FiX />
                 </button>
               </div>
 
-              <div className="max-h-[calc(92vh-80px)] overflow-y-auto p-5">
+              {/* ================= MODAL BODY ================= */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
                 {detailsLoading ? (
                   <div className="flex min-h-[300px] items-center justify-center">
-                    <div className="flex items-center gap-2 text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
                       <FiLoader className="animate-spin" />
                       Loading order...
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    {/* ================= SUMMARY CARDS ================= */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-2 flex items-center gap-2 text-gray-500">
                           <FiUser />
 
@@ -1751,20 +2145,20 @@ export default function AdminOrders() {
                           </span>
                         </div>
 
-                        <p className="font-semibold text-gray-900 dark:text-white">
+                        <p className="break-words font-semibold text-gray-900 dark:text-white">
                           {getCustomerName(
                             selectedOrder
                           )}
                         </p>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 break-all text-sm text-gray-500">
                           {getCustomerPhone(
                             selectedOrder
                           )}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-2 flex items-center gap-2 text-gray-500">
                           <FiMail />
 
@@ -1780,7 +2174,7 @@ export default function AdminOrders() {
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-2 flex items-center gap-2 text-gray-500">
                           <FiCreditCard />
 
@@ -1804,7 +2198,7 @@ export default function AdminOrders() {
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-2 flex items-center gap-2 text-gray-500">
                           <FiHash />
 
@@ -1813,7 +2207,7 @@ export default function AdminOrders() {
                           </span>
                         </div>
 
-                        <p className="text-xl font-bold text-gray-900 dark:text-white">
+                        <p className="text-xl font-bold text-gray-900 sm:text-2xl dark:text-white">
                           {currency(
                             getTotal(
                               selectedOrder
@@ -1823,63 +2217,66 @@ export default function AdminOrders() {
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    {/* ================= ADDRESS + INFO ================= */}
+                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-3 flex items-center gap-2">
-                          <FiMapPin className="text-indigo-500" />
+                          <FiMapPin className="shrink-0 text-indigo-500" />
 
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             Delivery Address
                           </h3>
                         </div>
 
-                        <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                        <p className="break-words text-sm leading-6 text-gray-600 dark:text-gray-300">
                           {getShippingAddress(
                             selectedOrder
                           )}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                      <div className="rounded-xl border border-gray-200 p-3 sm:p-4 dark:border-gray-800">
                         <div className="mb-3 flex items-center gap-2">
-                          <FiCalendar className="text-indigo-500" />
+                          <FiCalendar className="shrink-0 text-indigo-500" />
 
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             Order Information
                           </h3>
                         </div>
 
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between gap-4">
+                        <div className="space-y-3 text-sm">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                             <span className="text-gray-500">
                               Order Date
                             </span>
 
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-medium text-gray-900 sm:text-right dark:text-white">
                               {formatDate(
                                 selectedOrder?.createdAt
                               )}
                             </span>
                           </div>
 
-                          <div className="flex justify-between gap-4">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                             <span className="text-gray-500">
                               Order Status
                             </span>
 
-                            <StatusBadge
-                              value={getOrderStatus(
-                                selectedOrder
-                              )}
-                            />
+                            <div>
+                              <StatusBadge
+                                value={getOrderStatus(
+                                  selectedOrder
+                                )}
+                              />
+                            </div>
                           </div>
 
-                          <div className="flex justify-between gap-4">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                             <span className="text-gray-500">
                               Transaction ID
                             </span>
 
-                            <span className="max-w-[240px] break-all text-right font-medium text-gray-900 dark:text-white">
+                            <span className="break-all font-medium text-gray-900 sm:max-w-[240px] sm:text-right dark:text-white">
                               {getTransactionId(
                                 selectedOrder
                               )}
@@ -1887,12 +2284,12 @@ export default function AdminOrders() {
                           </div>
 
                           {selectedOrder?.invoiceNumber && (
-                            <div className="flex justify-between gap-4">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                               <span className="text-gray-500">
                                 Invoice No.
                               </span>
 
-                              <span className="font-medium text-gray-900 dark:text-white">
+                              <span className="break-all font-medium text-gray-900 sm:text-right dark:text-white">
                                 {
                                   selectedOrder.invoiceNumber
                                 }
@@ -1903,8 +2300,9 @@ export default function AdminOrders() {
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-xl border border-gray-200 dark:border-gray-800">
-                      <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                    {/* ================= PRODUCTS ================= */}
+                    <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-800">
+                      <div className="border-b border-gray-200 px-3 py-3 sm:px-4 dark:border-gray-800">
                         <h3 className="font-semibold text-gray-900 dark:text-white">
                           Products
                         </h3>
@@ -1925,38 +2323,54 @@ export default function AdminOrders() {
                                 key={`${getProductName(
                                   item
                                 )}-${index}`}
-                                className="flex gap-4 p-4"
+                                className="flex flex-col gap-3 p-3 sm:flex-row sm:gap-4 sm:p-4"
                               >
-                                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-                                  {image ? (
-                                    <img
-                                      src={image}
-                                      alt={getProductName(
+                                <div className="flex gap-3">
+                                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+                                    {image ? (
+                                      <img
+                                        src={image}
+                                        alt={getProductName(
+                                          item
+                                        )}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                        <FiPackage />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-0 flex-1 sm:hidden">
+                                    <p className="break-words font-semibold text-gray-900 dark:text-white">
+                                      {getProductName(
                                         item
                                       )}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                      <FiPackage />
-                                    </div>
-                                  )}
+                                    </p>
+
+                                    <p className="mt-1 break-all text-xs text-gray-500">
+                                      SKU:{" "}
+                                      {item?.sku ||
+                                        "—"}
+                                    </p>
+                                  </div>
                                 </div>
 
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                  <p className="hidden break-words font-semibold text-gray-900 sm:block dark:text-white">
                                     {getProductName(
                                       item
                                     )}
                                   </p>
 
-                                  <p className="mt-1 text-xs text-gray-500">
+                                  <p className="mt-1 hidden break-all text-xs text-gray-500 sm:block">
                                     SKU:{" "}
                                     {item?.sku ||
                                       "—"}
                                   </p>
 
-                                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
+                                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 sm:mt-2">
                                     <span>
                                       Qty:{" "}
                                       {getProductQuantity(
@@ -1975,18 +2389,24 @@ export default function AdminOrders() {
                                   </div>
                                 </div>
 
-                                <div className="font-bold text-gray-900 dark:text-white">
-                                  {currency(
-                                    Number(
-                                      item?.subtotal
-                                    ) ||
-                                      getProductPrice(
-                                        item
-                                      ) *
-                                        getProductQuantity(
+                                <div className="flex items-center justify-between border-t border-gray-100 pt-3 sm:block sm:border-0 sm:pt-0 dark:border-gray-800">
+                                  <span className="text-xs font-medium text-gray-500 sm:hidden">
+                                    Subtotal
+                                  </span>
+
+                                  <div className="whitespace-nowrap text-right font-bold text-gray-900 dark:text-white">
+                                    {currency(
+                                      Number(
+                                        item?.subtotal
+                                      ) ||
+                                        getProductPrice(
                                           item
-                                        )
-                                  )}
+                                        ) *
+                                          getProductQuantity(
+                                            item
+                                          )
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1995,7 +2415,8 @@ export default function AdminOrders() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    {/* ================= ACTION BUTTONS ================= */}
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                       {getPaymentMethod(
                         selectedOrder
                       ) === "upi" &&
@@ -2016,7 +2437,7 @@ export default function AdminOrders() {
                                   selectedOrder
                                 )}-verify`
                               }
-                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                             >
                               {actionLoading ===
                               `${getOrderId(
@@ -2043,7 +2464,7 @@ export default function AdminOrders() {
                                   selectedOrder
                                 )}-reject`
                               }
-                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                             >
                               {actionLoading ===
                               `${getOrderId(
@@ -2075,7 +2496,7 @@ export default function AdminOrders() {
                               selectedOrder
                             )
                           }
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                         >
                           {invoiceLoading ===
                           getOrderId(
@@ -2092,10 +2513,11 @@ export default function AdminOrders() {
                         <button
                           type="button"
                           disabled
-                          className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-500"
+                          className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-500 sm:w-auto dark:bg-gray-800 dark:text-gray-500"
                           title="UPI payment approval required"
                         >
                           <FiFileText />
+
                           Invoice Pending Payment Approval
                         </button>
                       )}
@@ -2105,28 +2527,29 @@ export default function AdminOrders() {
                         onClick={() =>
                           setSelectedOrder(null)
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                       >
                         Close
                       </button>
                     </div>
 
+                    {/* ================= UPI NOTICE ================= */}
                     {getPaymentMethod(
                       selectedOrder
                     ) === "upi" &&
                       getPaymentStatus(
                         selectedOrder
                       ) !== "paid" && (
-                        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/20 dark:text-yellow-300">
+                        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 sm:p-4 dark:border-yellow-900/50 dark:bg-yellow-950/20 dark:text-yellow-300">
                           <div className="flex items-start gap-3">
                             <FiAlertCircle className="mt-0.5 shrink-0" />
 
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold">
                                 Invoice is locked
                               </p>
 
-                              <p className="mt-1">
+                              <p className="mt-1 break-words leading-6">
                                 UPI payment approve hone ke baad hi GST invoice generate kiya ja sakta hai.
                               </p>
                             </div>

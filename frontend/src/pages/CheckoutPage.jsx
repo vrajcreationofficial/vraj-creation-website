@@ -392,7 +392,7 @@ const fetchPincodeDetails = async (
 
   if (!response.ok) {
     throw new Error(
-      "Pincode details fetch nahi ho paye."
+      "Unable to fetch pincode details."
     );
   }
 
@@ -1062,7 +1062,7 @@ const CheckoutPage = () => {
 
             setPincodeError(
               err?.message ||
-                "Pincode details nahi mile."
+                "Unable to find pincode details."
             );
           } finally {
             if (
@@ -1132,7 +1132,20 @@ const CheckoutPage = () => {
         setPincodeData(
           null
         );
+
         setPincodeError(
+          ""
+        );
+
+        setShippingData(
+          null
+        );
+
+        setShippingCharge(
+          0
+        );
+
+        setShippingError(
           ""
         );
       }
@@ -1187,7 +1200,7 @@ const CheckoutPage = () => {
         );
 
         setShippingError(
-          "Cart mein koi product nahi hai."
+          "Cart is empty."
         );
 
         return null;
@@ -1210,7 +1223,7 @@ const CheckoutPage = () => {
         );
 
         setShippingError(
-          "Cart product SKU missing hai. Please cart ko refresh karke try karein."
+          "Product SKU is missing. Please refresh the cart and try again."
         );
 
         return null;
@@ -1279,15 +1292,12 @@ const CheckoutPage = () => {
                   ""
               ).trim(),
 
-            // IMPORTANT:
-            // Backend supports subtotal.
             subtotal:
               Number(
                 sellingSubtotal ||
                   0
               ),
 
-            // Compatibility
             sellingSubtotal:
               Number(
                 sellingSubtotal ||
@@ -1534,7 +1544,7 @@ const CheckoutPage = () => {
 
         setShippingError(
           error?.message ||
-            "Shipping charge calculate nahi ho saka."
+            "Unable to calculate shipping charge."
         );
 
         return null;
@@ -1584,7 +1594,7 @@ const CheckoutPage = () => {
       );
 
       setShippingError(
-        "Cart mein koi product nahi hai."
+        "Cart is empty."
       );
 
       return;
@@ -1603,7 +1613,7 @@ const CheckoutPage = () => {
       );
 
       setShippingError(
-        "Cart product SKU missing hai. Please cart ko refresh karke try karein."
+        "Product SKU is missing. Please refresh the cart and try again."
       );
 
       return;
@@ -1678,7 +1688,7 @@ const CheckoutPage = () => {
       if (
         !form.fullName.trim()
       ) {
-        return "Full name required hai.";
+        return "Full name is required.";
       }
 
       if (
@@ -1686,13 +1696,13 @@ const CheckoutPage = () => {
           form.mobile.trim()
         )
       ) {
-        return "Please valid 10-digit mobile number enter karein.";
+        return "Please enter a valid 10-digit mobile number.";
       }
 
       if (
         !form.email.trim()
       ) {
-        return "Email required hai.";
+        return "Email is required.";
       }
 
       if (
@@ -1700,25 +1710,25 @@ const CheckoutPage = () => {
           form.email.trim()
         )
       ) {
-        return "Please valid email enter karein.";
+        return "Please enter a valid email address.";
       }
 
       if (
         !form.address.trim()
       ) {
-        return "Complete address required hai.";
+        return "Complete address is required.";
       }
 
       if (
         !form.city.trim()
       ) {
-        return "City required hai.";
+        return "City is required.";
       }
 
       if (
         !form.state.trim()
       ) {
-        return "State required hai.";
+        return "State is required.";
       }
 
       if (
@@ -1726,7 +1736,20 @@ const CheckoutPage = () => {
           form.pincode
         )
       ) {
-        return "Please valid 6-digit pincode enter karein.";
+        return "Please enter a valid 6-digit pincode.";
+      }
+
+      if (
+        pincodeLoading
+      ) {
+        return "Please wait while pincode details are loading.";
+      }
+
+      if (
+        pincodeError ||
+        !pincodeData
+      ) {
+        return "Please enter a valid pincode.";
       }
 
       if (
@@ -1736,20 +1759,29 @@ const CheckoutPage = () => {
         orderItems.length ===
           0
       ) {
-        return "Cart mein koi product nahi hai.";
+        return "Cart is empty.";
       }
 
       if (
         invalidSKUItems.length >
         0
       ) {
-        return "Cart mein product SKU missing hai. Please cart refresh karein.";
+        return "Product SKU is missing. Please refresh the cart.";
       }
 
       if (
         !shippingData
       ) {
-        return "Shipping charge calculate ho raha hai. Please thoda wait karein.";
+        return "Shipping charge is being calculated. Please wait.";
+      }
+
+      if (
+        paymentMethod !==
+          "cod" &&
+        paymentMethod !==
+          "upi"
+      ) {
+        return "Please select a payment method.";
       }
 
       if (
@@ -1757,11 +1789,114 @@ const CheckoutPage = () => {
         "upi" &&
         !upiMethod
       ) {
-        return "Please UPI payment method select karein.";
+        return "Please select a UPI payment method.";
       }
 
       return "";
     };
+
+  // ===================================================
+  // PLACE ORDER BUTTON VALIDATION
+  // ===================================================
+
+  const isFormComplete =
+    useMemo(() => {
+      const fullNameValid =
+        Boolean(
+          form.fullName.trim()
+        );
+
+      const mobileValid =
+        /^[0-9]{10}$/.test(
+          form.mobile.trim()
+        );
+
+      const emailValid =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          form.email.trim()
+        );
+
+      const addressValid =
+        Boolean(
+          form.address.trim()
+        );
+
+      const cityValid =
+        Boolean(
+          form.city.trim()
+        );
+
+      const stateValid =
+        Boolean(
+          form.state.trim()
+        );
+
+      const pincodeValid =
+        isValidPincode(
+          form.pincode
+        );
+
+      const pincodeReady =
+        Boolean(
+          pincodeData
+        ) &&
+        !pincodeLoading &&
+        !pincodeError;
+
+      const cartValid =
+        Array.isArray(
+          orderItems
+        ) &&
+        orderItems.length >
+          0;
+
+      const skuValid =
+        invalidSKUItems.length ===
+        0;
+
+      const shippingReady =
+        Boolean(
+          shippingData
+        ) &&
+        !shippingLoading;
+
+      const paymentValid =
+        paymentMethod ===
+          "cod" ||
+        (
+          paymentMethod ===
+            "upi" &&
+          Boolean(
+            upiMethod
+          )
+        );
+
+      return (
+        fullNameValid &&
+        mobileValid &&
+        emailValid &&
+        addressValid &&
+        cityValid &&
+        stateValid &&
+        pincodeValid &&
+        pincodeReady &&
+        cartValid &&
+        skuValid &&
+        shippingReady &&
+        paymentValid
+      );
+    }, [
+      form,
+      pincodeData,
+      pincodeLoading,
+      pincodeError,
+      orderItems,
+      invalidSKUItems.length,
+      shippingData,
+      shippingLoading,
+      paymentMethod,
+      upiMethod,
+    ]);
 
   // ===================================================
   // PLACE ORDER
@@ -1811,7 +1946,7 @@ const CheckoutPage = () => {
           !currentShipping
         ) {
           throw new Error(
-            "Shipping charge calculate nahi ho saka."
+            "Unable to calculate shipping charge."
           );
         }
 
@@ -2335,7 +2470,7 @@ const CheckoutPage = () => {
         ) {
           throw new Error(
             data?.message ||
-              "Order place nahi ho saka."
+              "Unable to place order."
           );
         }
 
@@ -2473,7 +2608,7 @@ const CheckoutPage = () => {
         // ==============================================
 
         setSuccessMessage(
-          "Order successfully place ho gaya."
+          "Order successfully placed."
         );
 
         // ==============================================
@@ -2494,7 +2629,7 @@ const CheckoutPage = () => {
 
         setError(
           err?.message ||
-            "Order place nahi ho saka. Please try again."
+            "Unable to place order. Please try again."
         );
       } finally {
         setPlacingOrder(
@@ -2528,9 +2663,8 @@ const CheckoutPage = () => {
           </h1>
 
           <p className="mt-2 text-sm text-[#7b6759]">
-            Checkout karne ke liye
-            pehle product cart mein
-            add karein.
+            Add products to your
+            cart before checkout.
           </p>
 
           <Link
@@ -2593,9 +2727,9 @@ const CheckoutPage = () => {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm text-[#7b6759]">
-            Apni delivery details aur
-            payment method enter karke
-            order complete karein.
+            Enter your delivery details
+            and payment method to
+            complete your order.
           </p>
         </div>
 
@@ -2606,6 +2740,7 @@ const CheckoutPage = () => {
         {error && (
           <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
             <FiX className="mt-0.5 shrink-0" />
+
             <span>
               {error}
             </span>
@@ -2619,6 +2754,7 @@ const CheckoutPage = () => {
         {successMessage && (
           <div className="mb-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-700">
             <FiCheck className="mt-0.5 shrink-0" />
+
             <span>
               {successMessage}
             </span>
@@ -2647,8 +2783,7 @@ const CheckoutPage = () => {
                   </h2>
 
                   <p className="text-xs text-[#8b7565]">
-                    Delivery ke liye basic
-                    information
+                    Delivery information
                   </p>
                 </div>
               </div>
@@ -2785,9 +2920,11 @@ const CheckoutPage = () => {
                   {pincodeData && (
                     <p className="mt-2 text-xs font-medium text-green-700">
                       {pincodeData.postOffice}
+
                       {pincodeData.district
                         ? `, ${pincodeData.district}`
                         : ""}
+
                       {pincodeData.state
                         ? `, ${pincodeData.state}`
                         : ""}
@@ -2841,12 +2978,6 @@ const CheckoutPage = () => {
                     placeholder="State"
                     className="w-full rounded-xl border border-[#dfcdb8] bg-[#fffdf9] px-3 py-3 text-sm outline-none transition focus:border-[#8f3424] focus:ring-2 focus:ring-[#8f3424]/10"
                   />
-
-                  <p className="mt-1.5 text-[11px] text-[#8b7565]">
-                    Pincode enter karne par
-                    city/state automatically
-                    fill ho jayega.
-                  </p>
                 </div>
               </div>
             </section>
@@ -2867,9 +2998,9 @@ const CheckoutPage = () => {
                   </h2>
 
                   <p className="text-xs text-[#8b7565]">
-                    Delivery charge pincode
-                    aur cart ke according
-                    calculate hoga.
+                    Delivery charge is
+                    calculated based on your
+                    pincode and cart.
                   </p>
                 </div>
               </div>
@@ -2878,15 +3009,15 @@ const CheckoutPage = () => {
                 form.pincode
               ) ? (
                 <div className="rounded-2xl border border-dashed border-[#dfcdb8] bg-[#fffaf2] p-4 text-sm text-[#7b6759]">
-                  Shipping charge dekhne ke
-                  liye valid pincode enter
-                  karein.
+                  Enter a valid pincode
+                  to calculate shipping.
                 </div>
               ) : shippingLoading ? (
                 <div className="flex items-center gap-3 rounded-2xl border border-[#eadbc8] bg-[#fffaf2] p-4 text-sm text-[#7b6759]">
                   <FiLoader className="animate-spin text-[#8f3424]" />
-                  Shipping charge calculate
-                  ho raha hai...
+
+                  Shipping charge is
+                  being calculated...
                 </div>
               ) : shippingError ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -2931,9 +3062,9 @@ const CheckoutPage = () => {
 
                   {shippingData?.isFree && (
                     <div className="rounded-xl bg-green-50 px-4 py-3 text-xs font-medium text-green-700">
-                      ₹999 ya usse zyada
-                      subtotal par free
-                      shipping applied.
+                      Free shipping applied
+                      on orders of ₹999 or
+                      more.
                     </div>
                   )}
 
@@ -2945,6 +3076,7 @@ const CheckoutPage = () => {
                           <p className="text-[#8b7565]">
                             Weight
                           </p>
+
                           <p className="mt-1 font-bold">
                             {formatPrice(
                               shippingData?.weightCharge ||
@@ -2957,6 +3089,7 @@ const CheckoutPage = () => {
                           <p className="text-[#8b7565]">
                             Size
                           </p>
+
                           <p className="mt-1 font-bold">
                             {formatPrice(
                               shippingData?.sizeCharge ||
@@ -2969,6 +3102,7 @@ const CheckoutPage = () => {
                           <p className="text-[#8b7565]">
                             Zone
                           </p>
+
                           <p className="mt-1 font-bold">
                             {formatPrice(
                               shippingData?.zoneCharge ||
@@ -2998,7 +3132,8 @@ const CheckoutPage = () => {
                   </h2>
 
                   <p className="text-xs text-[#8b7565]">
-                    Available payment options
+                    Choose your preferred
+                    payment option.
                   </p>
                 </div>
               </div>
@@ -3041,8 +3176,8 @@ const CheckoutPage = () => {
                       </p>
 
                       <p className="mt-1 text-xs text-[#8b7565]">
-                        Delivery ke time payment
-                        karein.
+                        Pay when your order
+                        is delivered.
                       </p>
                     </div>
                   </div>
@@ -3085,8 +3220,8 @@ const CheckoutPage = () => {
                       </p>
 
                       <p className="mt-1 text-xs text-[#8b7565]">
-                        UPI ID ya dynamic QR
-                        se payment karein.
+                        Pay using UPI ID or
+                        dynamic QR.
                       </p>
                     </div>
                   </div>
@@ -3119,6 +3254,11 @@ const CheckoutPage = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#8b7565]">
+                          Use the UPI ID to
+                          make payment.
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-[#8f3424]">
                           {VRAJ_UPI_ID}
                         </p>
                       </div>
@@ -3151,8 +3291,8 @@ const CheckoutPage = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#8b7565]">
-                          Final amount ke saath
-                          QR generate hoga.
+                          Scan the QR code and
+                          pay the exact amount.
                         </p>
                       </div>
 
@@ -3213,8 +3353,8 @@ const CheckoutPage = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#8b7565]">
-                          Scan QR and pay exact
-                          amount
+                          Scan the QR code and
+                          pay the exact amount.
                         </p>
                       </div>
                     )}
@@ -3354,6 +3494,7 @@ const CheckoutPage = () => {
                     <div className="flex items-center justify-between text-green-700">
                       <span className="flex items-center gap-1">
                         <FiGift />
+
                         Coupon
                         {couponCode
                           ? ` (${couponCode})`
@@ -3368,20 +3509,6 @@ const CheckoutPage = () => {
                       </span>
                     </div>
                   )}
-
-                  {/* Selling subtotal */}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#7b6759]">
-                      Product Total
-                    </span>
-
-                    <span className="font-semibold">
-                      {formatPrice(
-                        finalSellingSubtotal
-                      )}
-                    </span>
-                  </div>
 
                   {/* Shipping */}
 
@@ -3407,12 +3534,12 @@ const CheckoutPage = () => {
                     )}
                   </div>
 
-                  {/* Taxable value */}
+                  {/* Total Before Tax */}
 
                   <div className="border-t border-dashed border-[#dfcdb8] pt-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[#7b6759]">
-                        Taxable Value
+                        Total Before Tax
                       </span>
 
                       <span className="font-semibold">
@@ -3508,12 +3635,10 @@ const CheckoutPage = () => {
                 ================================================= */}
 
                 <p className="mt-4 text-[11px] leading-5 text-[#8b7565]">
-                  GST 5% taxable value ke
-                  upar add kiya gaya hai.
-                  Rajasthan ke andar
-                  CGST 2.5% + SGST 2.5%
-                  aur Rajasthan ke bahar
-                  IGST 5% apply hoga.
+                  GST 5% is added to the
+                  taxable value. In Rajasthan:
+                  CGST 2.5% + SGST 2.5%.
+                  Outside Rajasthan: IGST 5%.
                 </p>
 
                 {/* =================================================
@@ -3526,9 +3651,13 @@ const CheckoutPage = () => {
                     placeOrder
                   }
                   disabled={
-                    placingOrder ||
-                    shippingLoading ||
-                    !shippingData
+                    !isFormComplete ||
+                    placingOrder
+                  }
+                  title={
+                    !isFormComplete
+                      ? "Complete all required details to place your order."
+                      : ""
                   }
                   className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#8f3424] px-5 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#76291d] disabled:cursor-not-allowed disabled:opacity-50"
                 >

@@ -272,7 +272,7 @@ const ProductCard = ({ product }) => {
   // ==========================================================
 
   const whatsappNumber =
-    "918824968974";
+    "919785852096";
 
   const whatsappMessage =
     encodeURIComponent(

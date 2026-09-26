@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const crypto = require("crypto");
 
 const {
-  sendViaResend,
+  sendViaGmail,
 } = require("../services/emailService");
 
 const Admin = require("../models/Admin");
@@ -414,13 +414,12 @@ Bringing Art to Life
   // SEND THROUGH RESEND API
   // ===================================================
 
-  await sendViaResend({
-    to: cleanEmail,
-    from: EMAIL_FROM,
-    subject,
-    html,
-    text,
-  });
+ await sendViaGmail({
+  to: cleanEmail,
+  subject,
+  html,
+  text,
+});
 };
 
 // =====================================================
@@ -814,10 +813,9 @@ const forgotAdminPassword = async (
     // =================================================
 
     try {
-      console.log(
-        `[PASSWORD RESET] Sending OTP to ${cleanEmail} using Resend...`
-      );
-
+    console.log(
+  `[PASSWORD RESET] Sending OTP to ${cleanEmail} using Gmail SMTP...`
+);
       await sendPasswordResetOtp({
         email: cleanEmail,
         username: admin.username,

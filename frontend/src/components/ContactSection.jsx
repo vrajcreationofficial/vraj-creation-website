@@ -80,10 +80,10 @@ export default function ContactSection() {
               Phone Support
             </span>
             <a
-              href="tel:+918824968974"
+              href="tel:+919785852096"
               className="mt-1 text-lg font-bold text-[#38271d] transition-colors hover:text-[#8f3424] dark:text-[#fffaf2] dark:hover:text-[#dca34f]"
             >
-              +91 88249 68974
+              +91 9785852096
             </a>
             <p className="mt-2 text-xs leading-relaxed text-[#735f50] dark:text-[#c3b1a2]">
               Call directly for bespoke manufacturing & live order updates.

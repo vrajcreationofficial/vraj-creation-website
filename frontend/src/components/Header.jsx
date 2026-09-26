@@ -132,7 +132,7 @@ const socialLinks = [
   },
   {
     icon: FaWhatsapp,
-    href: "https://api.whatsapp.com/send?phone=918824968974&text=Hello%20vraj%20creation%20!%20i%20visited%20your%20webside%20and%20i%20want%20to%20know%20more%20about%20your%20products",
+    href: "https://api.whatsapp.com/send?phone=919785852096&text=Hello%20vraj%20creation%20!%20i%20visited%20your%20webside%20and%20i%20want%20to%20know%20more%20about%20your%20products",
     label: "WhatsApp",
   },
 ];

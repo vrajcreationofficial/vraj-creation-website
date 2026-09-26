@@ -257,7 +257,7 @@ export default function Footer() {
                   href="tel:+918824968974"
                   className="text-sm text-[#735f50] transition-colors hover:text-[#8f3424] dark:text-[#b8a697] dark:hover:text-[#dca34f]"
                 >
-                  +91 88249 68974
+                  +91 9785852096
                 </a>
               </div>
 
